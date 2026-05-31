@@ -1,5 +1,9 @@
 <img width="676" height="380" alt="MCP for Unity" src="docs/images/logo.png" />
 
+> 该 fork 版本回退了语法糖 C#7.3，能够在 Unity2019.4.40f1 中运行，但是不保证所有工具都能够按预期生效，我只能带你走到这里，剩下的自己解决。
+> 
+> This forked version rolls back the C# 7.3 syntactic sugar and can run on Unity2019.4.40f1. However, there is no guarantee that all tools will work as expected. I can only help you this far; you'll need to figure out the rest on your own.
+
 | [English](README.md) | [简体中文](docs/i18n/README-zh.md) |
 |----------------------|---------------------------------|
 
