@@ -165,7 +165,7 @@
 
 .pref-row .key-section {
     flex-shrink: 0;
-    width: 200px; /* Fixed width for key section */
+    width: 210px;
     margin-right: 12px;
 }
 
@@ -182,19 +182,21 @@
 
 .pref-row .action-buttons {
     flex-direction: row;
-    width: 32px;
+    width: 64px;
+    flex-shrink: 0;
     justify-content: flex-start;
 }
 
 .key-section {
     flex-direction: column;
-    min-width: 200px;
+    min-width: 210px;
 }
 
 .key-label {
     -unity-font-style: bold;
     color: white;
     white-space: normal;
+    font-size: 12px;
 }
 
 .value-field {
@@ -213,13 +215,31 @@
 .action-buttons .save-button {
     background-color: #4caf50;
     color: white;
-    min-width: 32px;
+    min-width: 56px;
+    width: 56px;
     height: 28px;
-    padding: 0;
-    font-size: 16px;
+    padding: 0 8px;
+    font-size: 12px;
     -unity-font-style: bold;
+    -unity-text-align: middle-center;
 }
 
 .action-buttons .save-button:hover {
     background-color: #45a049;
+}
+
+.refresh-button {
+    min-width: 72px;
+    width: 72px;
+    height: 28px;
+    margin-left: 6px;
+    padding: 0 10px;
+    background-color: #e68a00;
+    color: white;
+    border-radius: 4px;
+    -unity-text-align: middle-center;
+}
+
+.refresh-button:hover {
+    background-color: #f0a020;
 }

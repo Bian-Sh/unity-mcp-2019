@@ -5,6 +5,9 @@ using System.Linq;
 using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -419,7 +422,7 @@ namespace MCPForUnity.Editor.Tools.Prefabs
             string[] colorProps = { "_BaseColor", "_Color" };
             foreach (string prop in colorProps)
             {
-                if (mat.HasProperty(prop) && block.HasColor(prop))
+                if (mat.HasProperty(prop))
                 {
                     mat.SetColor(prop, block.GetColor(prop));
                 }
@@ -958,7 +961,8 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                         continue;
                     }
 
-                    if (entry.Value is not JObject props || !props.HasValues)
+                    var props = entry.Value as JObject;
+                    if (props == null || !props.HasValues)
                     {
                         continue;
                     }
@@ -1311,6 +1315,7 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                     return new ErrorResponse($"Prefab asset not found at '{sanitizedPath}'.");
                 }
 
+#if UNITY_2020_1_OR_NEWER
                 var prefabStage = PrefabStageUtility.OpenPrefab(sanitizedPath);
                 bool enteredStage = prefabStage != null
                     && string.Equals(prefabStage.assetPath, sanitizedPath, StringComparison.OrdinalIgnoreCase)
@@ -1331,6 +1336,9 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                         enteredPrefabStage = enteredStage
                     }
                 );
+#else
+                return new ErrorResponse("Opening prefab stage programmatically requires Unity 2020.1 or newer. Use modify_contents for headless prefab editing in Unity 2019.");
+#endif
             }
             catch (Exception e)
             {
@@ -1379,7 +1387,7 @@ namespace MCPForUnity.Editor.Tools.Prefabs
                     }
                 }
 
-                string prefabPath = prefabStage.assetPath;
+                string prefabPath = GetPrefabStageAssetPath(prefabStage);
                 StageUtility.GoToMainStage();
                 return new SuccessResponse($"Exited prefab stage for '{prefabPath}'.", new { prefabPath });
             }
@@ -1391,7 +1399,7 @@ namespace MCPForUnity.Editor.Tools.Prefabs
 
         private static bool TrySavePrefabStage(PrefabStage prefabStage, out string prefabPath, out string errorMessage)
         {
-            prefabPath = prefabStage.assetPath;
+            prefabPath = GetPrefabStageAssetPath(prefabStage);
             errorMessage = null;
 
             if (prefabStage.prefabContentsRoot == null)
@@ -1412,6 +1420,15 @@ namespace MCPForUnity.Editor.Tools.Prefabs
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             return true;
+        }
+
+        private static string GetPrefabStageAssetPath(PrefabStage prefabStage)
+        {
+#if UNITY_2020_1_OR_NEWER
+            return prefabStage.assetPath;
+#else
+            return prefabStage.prefabAssetPath;
+#endif
         }
 
         #endregion

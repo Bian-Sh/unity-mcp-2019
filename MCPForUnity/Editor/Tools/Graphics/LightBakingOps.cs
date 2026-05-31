@@ -11,6 +11,26 @@ using MCPForUnity.Runtime.Helpers;
 
 namespace MCPForUnity.Editor.Tools.Graphics
 {
+#if !UNITY_2020_1_OR_NEWER
+    internal static class LightBakingOps
+    {
+        private static ErrorResponse Unsupported()
+        {
+            return new ErrorResponse("LightingSettings-based light baking tools require Unity 2020.1 or newer.");
+        }
+
+        internal static object StartBake(JObject @params) => Unsupported();
+        internal static object CancelBake(JObject @params) => Unsupported();
+        internal static object GetStatus(JObject @params) => Unsupported();
+        internal static object ClearBake(JObject @params) => Unsupported();
+        internal static object BakeReflectionProbe(JObject @params) => Unsupported();
+        internal static object GetSettings(JObject @params) => Unsupported();
+        internal static object SetSettings(JObject @params) => Unsupported();
+        internal static object CreateLightProbeGroup(JObject @params) => Unsupported();
+        internal static object CreateReflectionProbe(JObject @params) => Unsupported();
+        internal static object SetProbePositions(JObject @params) => Unsupported();
+    }
+#else
     internal static class LightBakingOps
     {
         // === bake_start ===
@@ -582,4 +602,5 @@ namespace MCPForUnity.Editor.Tools.Graphics
             return false;
         }
     }
+#endif
 }

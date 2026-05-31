@@ -37,7 +37,7 @@ namespace MCPForUnity.Editor.Windows
         private VisualElement clientsList;
         private Button skipClientsButton;
         private Button configureSelectedButton;
-        private readonly List<(IMcpClientConfigurator client, Toggle toggle)> clientToggles = new();
+        private readonly List<(IMcpClientConfigurator client, Toggle toggle)> clientToggles = new List<(IMcpClientConfigurator client, Toggle toggle)>();
 
         private DependencyCheckResult _dependencyResult;
 
@@ -65,6 +65,9 @@ namespace MCPForUnity.Editor.Windows
             }
 
             visualTree.CloneTree(rootVisualElement);
+
+            AddStyleSheet(rootVisualElement, $"{basePath}/Editor/Windows/Components/Common.uss");
+            AddStyleSheet(rootVisualElement, $"{basePath}/Editor/Windows/MCPSetupWindow.uss");
 
             // Cache UI elements
             pythonIndicator = rootVisualElement.Q<VisualElement>("python-indicator");
@@ -96,6 +99,15 @@ namespace MCPForUnity.Editor.Windows
 
             // Initial update
             UpdateUI();
+        }
+
+        private static void AddStyleSheet(VisualElement root, string assetPath)
+        {
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(assetPath);
+            if (styleSheet != null)
+            {
+                root.styleSheets.Add(styleSheet);
+            }
         }
 
         private void OnEnable()

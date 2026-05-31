@@ -18,26 +18,26 @@ namespace MCPForUnity.Editor.Models
         public bool EnsureEnvObject; // Whether to ensure the env object is present in the config
         public bool StripEnvWhenNotRequired; // Whether to strip the env object when not required
         public string HttpUrlProperty = "url"; // The property name for the HTTP URL in the config
-        public Dictionary<string, object> DefaultUnityFields = new();
+        public Dictionary<string, object> DefaultUnityFields = new Dictionary<string, object>();
 
         // Helper method to convert the enum to a display string
         public string GetStatusDisplayString()
         {
-            return status switch
+            switch (status)
             {
-                McpStatus.NotConfigured => "Not Configured",
-                McpStatus.Configured => "Configured",
-                McpStatus.Running => "Running",
-                McpStatus.Connected => "Connected",
-                McpStatus.IncorrectPath => "Incorrect Path",
-                McpStatus.CommunicationError => "Communication Error",
-                McpStatus.NoResponse => "No Response",
-                McpStatus.UnsupportedOS => "Unsupported OS",
-                McpStatus.MissingConfig => "Missing MCPForUnity Config",
-                McpStatus.Error => configStatus?.StartsWith("Error:") == true ? configStatus : "Error",
-                McpStatus.VersionMismatch => "Version Mismatch",
-                _ => "Unknown",
-            };
+                case McpStatus.NotConfigured: return "Not Configured";
+                case McpStatus.Configured: return "Configured";
+                case McpStatus.Running: return "Running";
+                case McpStatus.Connected: return "Connected";
+                case McpStatus.IncorrectPath: return "Incorrect Path";
+                case McpStatus.CommunicationError: return "Communication Error";
+                case McpStatus.NoResponse: return "No Response";
+                case McpStatus.UnsupportedOS: return "Unsupported OS";
+                case McpStatus.MissingConfig: return "Missing MCPForUnity Config";
+                case McpStatus.Error: return configStatus != null && configStatus.StartsWith("Error:") ? configStatus : "Error";
+                case McpStatus.VersionMismatch: return "Version Mismatch";
+                default: return "Unknown";
+            }
         }
 
         // Helper method to set both status enum and string for backward compatibility

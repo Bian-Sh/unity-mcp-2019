@@ -92,6 +92,17 @@
     flex-shrink: 1;
     min-width: 150px;
     flex-basis: 200px;
+    height: 22px;
+    max-height: 22px;
+}
+
+.setting-dropdown-inline > .unity-popup-field,
+.setting-dropdown-inline > .unity-enum-field {
+    flex-grow: 1;
+    flex-shrink: 1;
+    height: 22px;
+    max-height: 22px;
+    min-height: 0px;
 }
 
 /* Validation Description */

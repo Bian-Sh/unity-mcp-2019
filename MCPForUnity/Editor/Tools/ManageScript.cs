@@ -243,14 +243,7 @@ namespace MCPForUnity.Editor.Tools
                 case "validate":
                     {
                         string level = p.Get("level", "standard").ToLowerInvariant();
-                        var chosen = level switch
-                        {
-                            "basic" => ValidationLevel.Basic,
-                            "standard" => ValidationLevel.Standard,
-                            "strict" => ValidationLevel.Strict,
-                            "comprehensive" => ValidationLevel.Comprehensive,
-                            _ => ValidationLevel.Standard
-                        };
+                        ValidationLevel chosen; switch (level) { case "basic": chosen = ValidationLevel.Basic; break; case "standard": chosen = ValidationLevel.Standard; break; case "strict": chosen = ValidationLevel.Strict; break; case "comprehensive": chosen = ValidationLevel.Comprehensive; break; default: chosen = ValidationLevel.Standard; break; }
                         string fileText;
                         try { fileText = File.ReadAllText(fullPath); }
                         catch (Exception ex) { return new ErrorResponse($"Failed to read script: {ex.Message}"); }
@@ -271,8 +264,7 @@ namespace MCPForUnity.Editor.Tools
                         }).ToArray();
 
                         var result = new { diagnostics = diags };
-                        return ok ? new SuccessResponse("Validation completed.", result)
-                                   : new ErrorResponse("Validation failed.", result);
+                        if (ok) return new SuccessResponse("Validation completed.", result); return new ErrorResponse("Validation failed.", result);
                     }
                 case "edit":
                     McpLog.Warn("manage_script.edit is deprecated; prefer apply_text_edits. Serving structured edit for backward compatibility.");
@@ -1641,14 +1633,7 @@ namespace MCPForUnity.Editor.Tools
                     var validateOpt = options?["validate"]?.ToString()?.ToLowerInvariant();
                     if (!string.IsNullOrEmpty(validateOpt))
                     {
-                        level = validateOpt switch
-                        {
-                            "basic" => ValidationLevel.Basic,
-                            "standard" => ValidationLevel.Standard,
-                            "comprehensive" => ValidationLevel.Comprehensive,
-                            "strict" => ValidationLevel.Strict,
-                            _ => level
-                        };
+                        switch (validateOpt) { case "basic": level = ValidationLevel.Basic; break; case "standard": level = ValidationLevel.Standard; break; case "comprehensive": level = ValidationLevel.Comprehensive; break; case "strict": level = ValidationLevel.Strict; break; }
                     }
                 }
                 catch { /* ignore option parsing issues */ }

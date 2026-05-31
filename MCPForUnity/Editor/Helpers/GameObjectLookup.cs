@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -37,16 +40,7 @@ namespace MCPForUnity.Editor.Helpers
             if (string.IsNullOrEmpty(method))
                 return SearchMethod.ByName;
 
-            return method.ToLowerInvariant() switch
-            {
-                "by_name" => SearchMethod.ByName,
-                "by_tag" => SearchMethod.ByTag,
-                "by_layer" => SearchMethod.ByLayer,
-                "by_component" => SearchMethod.ByComponent,
-                "by_path" => SearchMethod.ByPath,
-                "by_id" => SearchMethod.ById,
-                _ => SearchMethod.ByName
-            };
+            switch (method.ToLowerInvariant()) { case "by_name": return SearchMethod.ByName; case "by_tag": return SearchMethod.ByTag; case "by_layer": return SearchMethod.ByLayer; case "by_component": return SearchMethod.ByComponent; case "by_path": return SearchMethod.ByPath; case "by_id": return SearchMethod.ById; default: return SearchMethod.ByName; }
         }
 
         /// <summary>

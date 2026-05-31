@@ -6,6 +6,7 @@ using System.Reflection;
 using MCPForUnity.Editor.Constants;
 using MCPForUnity.Editor.Helpers;
 using UnityEditor;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -87,9 +88,34 @@ namespace MCPForUnity.Editor.Windows
         /// </summary>
         public static void ShowWindow()
         {
-            var window = GetWindow<EditorPrefsWindow>("EditorPrefs");
+            var existingWindows = UnityEngine.Resources.FindObjectsOfTypeAll<EditorPrefsWindow>();
+            for (int i = 0; i < existingWindows.Length; i++)
+            {
+                try
+                {
+                    existingWindows[i].Close();
+                }
+                catch (Exception ex)
+                {
+                    McpLog.Warn($"Error closing stale EditorPrefs window: {ex.Message}");
+                }
+            }
+
+            var window = CreateInstance<EditorPrefsWindow>();
+            window.titleContent = new GUIContent("EditorPrefs");
             window.minSize = new Vector2(600, 400);
-            window.Show();
+            window.ShowUtility();
+            window.position = new Rect(160, 160, 760, 560);
+            window.Focus();
+            window.Repaint();
+            EditorApplication.delayCall += () =>
+            {
+                if (window != null)
+                {
+                    window.Focus();
+                    window.Repaint();
+                }
+            };
         }
 
         public void CreateGUI()
@@ -123,6 +149,9 @@ namespace MCPForUnity.Editor.Windows
 
             visualTree.CloneTree(rootVisualElement);
 
+            AddStyleSheet(rootVisualElement, $"{basePath}/Editor/Windows/Components/Common.uss");
+            AddStyleSheet(rootVisualElement, $"{basePath}/Editor/Windows/EditorPrefs/EditorPrefsWindow.uss");
+
             // Add search bar container at the top
             var searchContainer = new VisualElement();
             searchContainer.style.flexDirection = FlexDirection.Row;
@@ -144,12 +173,9 @@ namespace MCPForUnity.Editor.Windows
             });
 
             var refreshButton = new Button(RefreshPrefs);
-            refreshButton.text = "↻";
+            refreshButton.text = "Refresh";
             refreshButton.tooltip = "Refresh prefs";
-            refreshButton.style.width = 30;
-            refreshButton.style.height = 28;
-            refreshButton.style.marginLeft = 6;
-            refreshButton.style.backgroundColor = new Color(0.9f, 0.5f, 0.1f);
+            refreshButton.AddToClassList("refresh-button");
 
             searchContainer.Add(searchField);
             searchContainer.Add(refreshButton);
@@ -164,6 +190,15 @@ namespace MCPForUnity.Editor.Windows
 
             // Load initial data
             RefreshPrefs();
+        }
+
+        private static void AddStyleSheet(VisualElement root, string assetPath)
+        {
+            var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(assetPath);
+            if (styleSheet != null)
+            {
+                root.styleSheets.Add(styleSheet);
+            }
         }
 
         private void LoadKnownMcpKeys()
@@ -326,7 +361,20 @@ namespace MCPForUnity.Editor.Windows
             var valueField = itemElement.Q<TextField>("value-field");
             valueField.value = item.Value;
 
-            var typeDropdown = itemElement.Q<DropdownField>("type-dropdown");
+            var typeDropdown = itemElement.Q<PopupField<string>>("type-dropdown");
+            if (typeDropdown == null)
+            {
+                var dropdownContainer = itemElement.Q<VisualElement>("type-dropdown-container");
+                typeDropdown = new PopupField<string>(string.Empty, new List<string> { "String", "Int", "Float", "Bool" }, 0);
+                typeDropdown.name = "type-dropdown";
+                typeDropdown.style.flexGrow = 1;
+                typeDropdown.style.flexShrink = 1;
+                typeDropdown.style.flexBasis = StyleKeyword.Auto;
+                if (dropdownContainer != null)
+                {
+                    dropdownContainer.Add(typeDropdown);
+                }
+            }
             typeDropdown.index = (int)item.Type;
 
             // Buttons

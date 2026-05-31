@@ -5,8 +5,10 @@ using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
+#if UNITY_2020_2_OR_NEWER
 using Unity.Profiling;
 using Unity.Profiling.LowLevel.Unsafe;
+#endif
 using UnityEngine.Profiling;
 using UProfiler = UnityEngine.Profiling.Profiler;
 
@@ -39,12 +41,17 @@ namespace MCPForUnity.Editor.Tools.Graphics
         // === stats_get ===
         internal static object GetStats(JObject @params)
         {
+#if !UNITY_2020_2_OR_NEWER
+            return new ErrorResponse("Rendering profiler counters require Unity 2020.2 or newer.");
+#else
             var stats = new Dictionary<string, object>();
 
             foreach (var (counterName, jsonKey) in COUNTER_MAP)
             {
-                using var recorder = ProfilerRecorder.StartNew(ProfilerCategory.Render, counterName);
-                stats[jsonKey] = recorder.Valid ? recorder.CurrentValue : 0;
+                using (var recorder = ProfilerRecorder.StartNew(ProfilerCategory.Render, counterName))
+                {
+                    stats[jsonKey] = recorder.Valid ? recorder.CurrentValue : 0;
+                }
             }
 
             return new
@@ -53,11 +60,15 @@ namespace MCPForUnity.Editor.Tools.Graphics
                 message = "Rendering stats captured.",
                 data = stats
             };
+#endif
         }
 
         // === stats_list_counters ===
         internal static object ListCounters(JObject @params)
         {
+#if !UNITY_2020_2_OR_NEWER
+            return new ErrorResponse("Profiler counter discovery requires Unity 2020.2 or newer.");
+#else
             var p = new ToolParams(@params);
             string categoryName = p.Get("category");
 
@@ -87,6 +98,7 @@ namespace MCPForUnity.Editor.Tools.Graphics
                 message = $"Found {counters.Count} counters in category '{category.Name}'.",
                 data = new { counters }
             };
+#endif
         }
 
         // === stats_set_scene_debug_mode ===
@@ -144,6 +156,7 @@ namespace MCPForUnity.Editor.Tools.Graphics
         }
 
         // --- Helper: Try to resolve a ProfilerCategory by name ---
+#if UNITY_2020_2_OR_NEWER
         private static ProfilerCategory TryResolveCategory(string name)
         {
             // ProfilerCategory has static properties for well-known categories
@@ -167,5 +180,6 @@ namespace MCPForUnity.Editor.Tools.Graphics
                 default: return ProfilerCategory.Render;
             }
         }
+#endif
     }
 }

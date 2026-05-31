@@ -27,7 +27,8 @@ namespace MCPForUnity.Editor.Helpers
         {
             var path = GetStatePath(toolName);
             Directory.CreateDirectory(Path.GetDirectoryName(path));
-            var json = JsonConvert.SerializeObject(state ?? Activator.CreateInstance<T>());
+            var value = object.Equals(state, default(T)) ? Activator.CreateInstance<T>() : state;
+            var json = JsonConvert.SerializeObject(value);
             File.WriteAllText(path, json);
         }
 

@@ -523,7 +523,8 @@ namespace MCPForUnity.Editor.Helpers
             for (int i = 0; i < keysArray.Count; i++)
             {
                 var keyToken = keysArray[i];
-                if (keyToken is not JObject keyObj)
+                var keyObj = keyToken as JObject;
+                if (keyObj == null)
                 {
                     message = $"Keyframe at index {i} must be an object with 'time' and 'value'.";
                     return false;

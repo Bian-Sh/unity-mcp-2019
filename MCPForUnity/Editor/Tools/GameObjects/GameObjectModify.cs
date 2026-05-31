@@ -1,10 +1,12 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEditor.SceneManagement;
 using UnityEditorInternal;
 using UnityEngine;
@@ -45,7 +47,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                 if (isRenamingPrefabRoot)
                 {
                     // Rename the prefab asset file to match the new name (avoids Unity dialog)
-                    string assetPath = prefabStageForRename.assetPath;
+                    string assetPath = GetPrefabStageAssetPath(prefabStageForRename);
                     string directory = System.IO.Path.GetDirectoryName(assetPath);
                     string newAssetPath = AssetPathUtility.NormalizeSeparators(System.IO.Path.Combine(directory, name + ".prefab"));
 
@@ -305,6 +307,15 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                 $"GameObject '{targetGo.name}' modified successfully.",
                 Helpers.GameObjectSerializer.GetGameObjectData(targetGo)
             );
+        }
+
+        private static string GetPrefabStageAssetPath(PrefabStage prefabStage)
+        {
+#if UNITY_2020_1_OR_NEWER
+            return prefabStage.assetPath;
+#else
+            return prefabStage.prefabAssetPath;
+#endif
         }
     }
 }

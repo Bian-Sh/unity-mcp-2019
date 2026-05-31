@@ -1,5 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <Style src="../Common.uss" />
     <ui:VisualElement name="advanced-section" class="section">
         <ui:Label text="Advanced Settings" class="section-title" />
         <ui:VisualElement class="section-content">

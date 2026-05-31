@@ -87,6 +87,19 @@ namespace MCPForUnity.Editor.Windows.Components.Connection
         private void CacheUIElements()
         {
             transportDropdown = Root.Q<EnumField>("transport-dropdown");
+            if (transportDropdown == null)
+            {
+                var dropdownContainer = Root.Q<VisualElement>("transport-dropdown-container");
+                transportDropdown = new EnumField();
+                transportDropdown.name = "transport-dropdown";
+                transportDropdown.style.flexGrow = 1;
+                transportDropdown.style.flexShrink = 1;
+                transportDropdown.style.flexBasis = StyleKeyword.Auto;
+                if (dropdownContainer != null)
+                {
+                    dropdownContainer.Add(transportDropdown);
+                }
+            }
             transportMismatchWarning = Root.Q<VisualElement>("transport-mismatch-warning");
             transportMismatchText = Root.Q<Label>("transport-mismatch-text");
             versionMismatchWarning = Root.Q<VisualElement>("version-mismatch-warning");
@@ -1133,13 +1146,7 @@ namespace MCPForUnity.Editor.Windows.Components.Connection
 
         private static string TransportDisplayName(ConfiguredTransport transport)
         {
-            return transport switch
-            {
-                ConfiguredTransport.Stdio => "stdio",
-                ConfiguredTransport.Http => "HTTP Local",
-                ConfiguredTransport.HttpRemote => "HTTP Remote",
-                _ => "unknown"
-            };
+            switch (transport) { case ConfiguredTransport.Stdio: return "stdio"; case ConfiguredTransport.Http: return "HTTP Local"; case ConfiguredTransport.HttpRemote: return "HTTP Remote"; default: return "unknown"; }
         }
     }
 }

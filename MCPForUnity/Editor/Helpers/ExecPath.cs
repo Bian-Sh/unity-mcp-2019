@@ -200,30 +200,32 @@ namespace MCPForUnity.Editor.Helpers
                         : (extraPathPrepend + System.IO.Path.PathSeparator + currentPath);
                 }
 
-                using var process = new Process { StartInfo = psi, EnableRaisingEvents = false };
-
-                var sb = new StringBuilder();
-                var se = new StringBuilder();
-                process.OutputDataReceived += (_, e) => { if (e.Data != null) sb.AppendLine(e.Data); };
-                process.ErrorDataReceived += (_, e) => { if (e.Data != null) se.AppendLine(e.Data); };
-
-                if (!process.Start()) return false;
-
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-
-                if (!process.WaitForExit(timeoutMs))
+                using (var process = new Process { StartInfo = psi, EnableRaisingEvents = false })
                 {
-                    try { process.Kill(); } catch { }
-                    return false;
+
+                    var sb = new StringBuilder();
+                    var se = new StringBuilder();
+                    process.OutputDataReceived += (_, e) => { if (e.Data != null) sb.AppendLine(e.Data); };
+                    process.ErrorDataReceived += (_, e) => { if (e.Data != null) se.AppendLine(e.Data); };
+
+                    if (!process.Start()) return false;
+
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    if (!process.WaitForExit(timeoutMs))
+                    {
+                        try { process.Kill(); } catch { }
+                        return false;
+                    }
+
+                    // Ensure async buffers are flushed
+                    process.WaitForExit();
+
+                    stdout = sb.ToString();
+                    stderr = se.ToString();
+                    return process.ExitCode == 0;
                 }
-
-                // Ensure async buffers are flushed
-                process.WaitForExit();
-
-                stdout = sb.ToString();
-                stderr = se.ToString();
-                return process.ExitCode == 0;
             }
             catch
             {
@@ -260,22 +262,24 @@ namespace MCPForUnity.Editor.Helpers
                 string path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
                 psi.EnvironmentVariables["PATH"] = string.IsNullOrEmpty(path) ? prependPath : (prependPath + Path.PathSeparator + path);
 
-                using var p = Process.Start(psi);
-                if (p == null) return null;
-
-                var so = new StringBuilder();
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) so.AppendLine(e.Data); };
-                p.BeginOutputReadLine();
-
-                if (!p.WaitForExit(1500))
+                using (var p = Process.Start(psi))
                 {
-                    try { p.Kill(); } catch { }
-                    return null;
-                }
+                    if (p == null) return null;
 
-                p.WaitForExit();
-                string output = so.ToString().Trim();
-                return (!string.IsNullOrEmpty(output) && File.Exists(output)) ? output : null;
+                    var so = new StringBuilder();
+                    p.OutputDataReceived += (_, e) => { if (e.Data != null) so.AppendLine(e.Data); };
+                    p.BeginOutputReadLine();
+
+                    if (!p.WaitForExit(1500))
+                    {
+                        try { p.Kill(); } catch { }
+                        return null;
+                    }
+
+                    p.WaitForExit();
+                    string output = so.ToString().Trim();
+                    return (!string.IsNullOrEmpty(output) && File.Exists(output)) ? output : null;
+                }
             }
             catch { return null; }
         }
@@ -303,24 +307,26 @@ namespace MCPForUnity.Editor.Helpers
                     psi.EnvironmentVariables["PATH"] = effectivePath;
                 }
 
-                using var p = Process.Start(psi);
-                if (p == null) return null;
-
-                var so = new StringBuilder();
-                p.OutputDataReceived += (_, e) => { if (e.Data != null) so.AppendLine(e.Data); };
-                p.BeginOutputReadLine();
-
-                if (!p.WaitForExit(1500))
+                using (var p = Process.Start(psi))
                 {
-                    try { p.Kill(); } catch { }
-                    return null;
-                }
+                    if (p == null) return null;
 
-                p.WaitForExit();
-                string first = so.ToString()
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .FirstOrDefault();
-                return (!string.IsNullOrEmpty(first) && File.Exists(first)) ? first : null;
+                    var so = new StringBuilder();
+                    p.OutputDataReceived += (_, e) => { if (e.Data != null) so.AppendLine(e.Data); };
+                    p.BeginOutputReadLine();
+
+                    if (!p.WaitForExit(1500))
+                    {
+                        try { p.Kill(); } catch { }
+                        return null;
+                    }
+
+                    p.WaitForExit();
+                    string first = so.ToString()
+                        .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                        .FirstOrDefault();
+                    return (!string.IsNullOrEmpty(first) && File.Exists(first)) ? first : null;
+                }
             }
             catch { return null; }
         }

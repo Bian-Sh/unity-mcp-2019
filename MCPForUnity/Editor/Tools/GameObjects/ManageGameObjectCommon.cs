@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -6,6 +5,7 @@ using MCPForUnity.Editor.Helpers;
 using MCPForUnity.Editor.Tools;
 using Newtonsoft.Json.Linq;
 using UnityEditor.SceneManagement;
+using UnityEditor.Experimental.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using MCPForUnity.Runtime.Helpers;
@@ -76,7 +76,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                     break;
 
                 case "by_name":
-                    var searchPoolName = rootSearchObject
+                    var searchPoolName = rootSearchObject != null
                         ? rootSearchObject
                             .GetComponentsInChildren<Transform>(searchInactive)
                             .Select(t => t.gameObject)
@@ -116,7 +116,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                     break;
 
                 case "by_tag":
-                    var searchPoolTag = rootSearchObject
+                    var searchPoolTag = rootSearchObject != null
                         ? rootSearchObject
                             .GetComponentsInChildren<Transform>(searchInactive)
                             .Select(t => t.gameObject)
@@ -125,7 +125,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                     break;
 
                 case "by_layer":
-                    var searchPoolLayer = rootSearchObject
+                    var searchPoolLayer = rootSearchObject != null
                         ? rootSearchObject
                             .GetComponentsInChildren<Transform>(searchInactive)
                             .Select(t => t.gameObject)
@@ -147,7 +147,7 @@ namespace MCPForUnity.Editor.Tools.GameObjects
                     if (componentType != null)
                     {
                         IEnumerable<GameObject> searchPoolComp;
-                        if (rootSearchObject)
+                        if (rootSearchObject != null)
                         {
                             searchPoolComp = rootSearchObject
                                 .GetComponentsInChildren(componentType, searchInactive)

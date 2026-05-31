@@ -44,7 +44,7 @@ namespace MCPForUnity.Editor.Windows
         private VisualElement toolsPanel;
         private VisualElement resourcesPanel;
 
-        private static readonly HashSet<MCPForUnityEditorWindow> OpenWindows = new();
+        private static readonly HashSet<MCPForUnityEditorWindow> OpenWindows = new HashSet<MCPForUnityEditorWindow>();
         private bool guiCreated = false;
         private bool toolsLoaded = false;
         private bool resourcesLoaded = false;
@@ -74,41 +74,34 @@ namespace MCPForUnity.Editor.Windows
         public static void ShowWindow()
         {
             var existingWindows = UnityEngine.Resources.FindObjectsOfTypeAll<MCPForUnityEditorWindow>();
-            MCPForUnityEditorWindow window = null;
-
-            if (existingWindows.Length > 0)
+            for (int i = 0; i < existingWindows.Length; i++)
             {
-                window = existingWindows[0];
-
-                // If multiple instances exist, keep one and close the extras to avoid stale hidden tabs.
-                for (int i = 1; i < existingWindows.Length; i++)
+                try
                 {
-                    try
-                    {
-                        existingWindows[i].Close();
-                    }
-                    catch (Exception ex)
-                    {
-                        McpLog.Warn($"Error closing duplicate MCP window: {ex.Message}");
-                    }
+                    existingWindows[i].Close();
+                }
+                catch (Exception ex)
+                {
+                    McpLog.Warn($"Error closing stale MCP window: {ex.Message}");
                 }
             }
-            else
-            {
-                window = GetWindow<MCPForUnityEditorWindow>("MCP For Unity");
-            }
+
+            MCPForUnityEditorWindow window = CreateInstance<MCPForUnityEditorWindow>();
 
             window.titleContent = new GUIContent("MCP For Unity");
             window.minSize = new Vector2(500, 340);
-
-            if (window.position.width < 100 || window.position.height < 100)
-            {
-                window.position = new Rect(120, 120, 900, 700);
-            }
-
-            window.Show();
-            window.ShowTab();
+            window.ShowUtility();
+            window.position = new Rect(120, 120, 900, 700);
             window.Focus();
+            window.Repaint();
+            EditorApplication.delayCall += () =>
+            {
+                if (window != null)
+                {
+                    window.Focus();
+                    window.Repaint();
+                }
+            };
         }
 
         // Helper to check and manage open windows from other classes
@@ -142,7 +135,9 @@ namespace MCPForUnity.Editor.Windows
         {
             // Guard against repeated CreateGUI calls (e.g., domain reloads)
             if (guiCreated)
+            {
                 return;
+            }
 
             string basePath = AssetPathUtility.GetMcpPackageRootPath();
 
@@ -243,7 +238,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (connectionTree != null)
             {
-                var connectionRoot = connectionTree.Instantiate();
+                var connectionRoot = connectionTree.CloneTree();
                 clientsContainer.Add(connectionRoot);
                 connectionSection = new McpConnectionSection(connectionRoot);
                 connectionSection.OnManualConfigUpdateRequested += () =>
@@ -258,7 +253,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (clientConfigTree != null)
             {
-                var clientConfigRoot = clientConfigTree.Instantiate();
+                var clientConfigRoot = clientConfigTree.CloneTree();
                 clientsContainer.Add(clientConfigRoot);
                 clientConfigSection = new McpClientConfigSection(clientConfigRoot);
 
@@ -282,7 +277,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (advancedTree != null)
             {
-                var advancedRoot = advancedTree.Instantiate();
+                var advancedRoot = advancedTree.CloneTree();
                 advancedContainer.Add(advancedRoot);
                 advancedSection = new McpAdvancedSection(advancedRoot);
 
@@ -315,7 +310,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (validationTree != null)
             {
-                var validationRoot = validationTree.Instantiate();
+                var validationRoot = validationTree.CloneTree();
                 advancedContainer.Add(validationRoot);
                 new McpValidationSection(validationRoot);
             }
@@ -326,7 +321,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (toolsTree != null)
             {
-                var toolsRoot = toolsTree.Instantiate();
+                var toolsRoot = toolsTree.CloneTree();
                 toolsContainer.Add(toolsRoot);
                 toolsSection = new McpToolsSection(toolsRoot);
 
@@ -346,7 +341,7 @@ namespace MCPForUnity.Editor.Windows
             );
             if (resourcesTree != null)
             {
-                var resourcesRoot = resourcesTree.Instantiate();
+                var resourcesRoot = resourcesTree.CloneTree();
                 resourcesContainer.Add(resourcesRoot);
                 resourcesSection = new McpResourcesSection(resourcesRoot);
 
@@ -605,6 +600,7 @@ namespace MCPForUnity.Editor.Windows
             advancedTabToggle = rootVisualElement.Q<ToolbarToggle>("advanced-tab");
             toolsTabToggle = rootVisualElement.Q<ToolbarToggle>("tools-tab");
             resourcesTabToggle = rootVisualElement.Q<ToolbarToggle>("resources-tab");
+            EnsureTabToolbarControls();
 
             clientsPanel?.RemoveFromClassList("hidden");
             depsPanel?.RemoveFromClassList("hidden");
@@ -661,6 +657,42 @@ namespace MCPForUnity.Editor.Windows
             }
 
             SwitchPanel(initialPanel);
+        }
+
+        private void EnsureTabToolbarControls()
+        {
+            if (clientsTabToggle != null && depsTabToggle != null && advancedTabToggle != null && toolsTabToggle != null && resourcesTabToggle != null)
+            {
+                return;
+            }
+
+            var toolbar = rootVisualElement.Q<VisualElement>("tab-toolbar");
+            if (toolbar == null)
+            {
+                return;
+            }
+
+            toolbar.Clear();
+            clientsTabToggle = CreateTabToggle("clients-tab", "Connect", true);
+            toolsTabToggle = CreateTabToggle("tools-tab", "Tools", false);
+            resourcesTabToggle = CreateTabToggle("resources-tab", "Resources", false);
+            depsTabToggle = CreateTabToggle("deps-tab", "Deps", false);
+            advancedTabToggle = CreateTabToggle("advanced-tab", "Advanced", false);
+            toolbar.Add(clientsTabToggle);
+            toolbar.Add(toolsTabToggle);
+            toolbar.Add(resourcesTabToggle);
+            toolbar.Add(depsTabToggle);
+            toolbar.Add(advancedTabToggle);
+        }
+
+        private static ToolbarToggle CreateTabToggle(string name, string text, bool value)
+        {
+            var toggle = new ToolbarToggle();
+            toggle.name = name;
+            toggle.text = text;
+            toggle.value = value;
+            toggle.AddToClassList("mcp-tab-toggle");
+            return toggle;
         }
 
         private void SwitchPanel(ActivePanel panel)
@@ -984,18 +1016,41 @@ namespace MCPForUnity.Editor.Windows
 
         private static void BatchUpmAdd(string[] packageIds, Action onComplete = null)
         {
+#if UNITY_2020_1_OR_NEWER
             var request = UnityEditor.PackageManager.Client.AddAndRemove(packageIds, null);
             EditorUtility.DisplayProgressBar("Installing Packages", $"Installing {packageIds.Length} package(s)...", 0.5f);
             PollUpmRequest(request, "install", onComplete);
+#else
+            if (packageIds == null || packageIds.Length == 0)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            EditorUtility.DisplayProgressBar("Installing Packages", $"Installing {packageIds.Length} package(s)...", 0.5f);
+            BatchUpmAddLegacy(packageIds, 0, onComplete);
+#endif
         }
 
         private static void BatchUpmRemove(string[] packageIds, Action onComplete = null)
         {
+#if UNITY_2020_1_OR_NEWER
             var request = UnityEditor.PackageManager.Client.AddAndRemove(null, packageIds);
             EditorUtility.DisplayProgressBar("Removing Packages", $"Removing {packageIds.Length} package(s)...", 0.5f);
             PollUpmRequest(request, "remove", onComplete);
+#else
+            if (packageIds == null || packageIds.Length == 0)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            EditorUtility.DisplayProgressBar("Removing Packages", $"Removing {packageIds.Length} package(s)...", 0.5f);
+            BatchUpmRemoveLegacy(packageIds, 0, onComplete);
+#endif
         }
 
+#if UNITY_2020_1_OR_NEWER
         private static void PollUpmRequest(UnityEditor.PackageManager.Requests.AddAndRemoveRequest request, string verb, Action onComplete)
         {
             EditorApplication.CallbackFunction pollCallback = null;
@@ -1012,6 +1067,49 @@ namespace MCPForUnity.Editor.Windows
             };
             EditorApplication.update += pollCallback;
         }
+#else
+        private static void BatchUpmAddLegacy(string[] packageIds, int index, Action onComplete)
+        {
+            if (index >= packageIds.Length)
+            {
+                EditorUtility.ClearProgressBar();
+                onComplete?.Invoke();
+                return;
+            }
+
+            var request = UnityEditor.PackageManager.Client.Add(packageIds[index]);
+            PollUpmRequest(request, "install", () => BatchUpmAddLegacy(packageIds, index + 1, onComplete));
+        }
+
+        private static void BatchUpmRemoveLegacy(string[] packageIds, int index, Action onComplete)
+        {
+            if (index >= packageIds.Length)
+            {
+                EditorUtility.ClearProgressBar();
+                onComplete?.Invoke();
+                return;
+            }
+
+            var request = UnityEditor.PackageManager.Client.Remove(packageIds[index]);
+            PollUpmRequest(request, "remove", () => BatchUpmRemoveLegacy(packageIds, index + 1, onComplete));
+        }
+
+        private static void PollUpmRequest(UnityEditor.PackageManager.Requests.Request request, string verb, Action onComplete)
+        {
+            EditorApplication.CallbackFunction pollCallback = null;
+            pollCallback = () =>
+            {
+                if (!request.IsCompleted) return;
+                EditorApplication.update -= pollCallback;
+                if (request.Status == UnityEditor.PackageManager.StatusCode.Success)
+                    Debug.Log($"[MCP] Package {verb} succeeded.");
+                else
+                    Debug.LogError($"[MCP] Package {verb} failed: {request.Error?.message}");
+                onComplete?.Invoke();
+            };
+            EditorApplication.update += pollCallback;
+        }
+#endif
 
         private static void UninstallRoslyn()
         {

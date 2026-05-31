@@ -19,11 +19,12 @@ namespace MCPForUnity.Editor.Tools
     public static class ManagePackages
     {
         // Pending async requests keyed by job ID
-        private static readonly Dictionary<string, Request> PendingRequests = new();
+        private static readonly Dictionary<string, Request> PendingRequests = new Dictionary<string, Request>();
 
         // Pending list/search requests keyed by job ID
-        private static readonly Dictionary<string, ListRequest> PendingListRequests = new();
-        private static readonly Dictionary<string, SearchRequest> PendingSearchRequests = new();
+        private static readonly Dictionary<string, ListRequest> PendingListRequests = new Dictionary<string, ListRequest>();
+        private static readonly Dictionary<string, SearchRequest> PendingSearchRequests = new Dictionary<string, SearchRequest>();
+        private static PackageInfo[] packageCache = Array.Empty<PackageInfo>();
 
         public static object HandleCommand(JObject @params)
         {
@@ -212,13 +213,7 @@ namespace MCPForUnity.Editor.Tools
             }
 
             var serialized = PackageJobManager.ToSerializable(job);
-            string message = job.Status switch
-            {
-                PackageJobStatus.Running => $"Job {job.JobId} is still running ({job.Operation} '{job.Package}').",
-                PackageJobStatus.Succeeded => $"Job {job.JobId} succeeded ({job.Operation} '{job.Package}').",
-                PackageJobStatus.Failed => $"Job {job.JobId} failed ({job.Operation} '{job.Package}'): {job.Error}",
-                _ => $"Job {job.JobId}: {job.Status}"
-            };
+            string message; switch (job.Status) { case PackageJobStatus.Running: message = $"Job {job.JobId} is still running ({job.Operation} '{job.Package}')."; break; case PackageJobStatus.Succeeded: message = $"Job {job.JobId} succeeded ({job.Operation} '{job.Package}')."; break; case PackageJobStatus.Failed: message = $"Job {job.JobId} failed ({job.Operation} '{job.Package}'): {job.Error}"; break; default: message = $"Job {job.JobId}: {job.Status}"; break; }
 
             if (job.Status == PackageJobStatus.Running)
             {
@@ -272,6 +267,8 @@ namespace MCPForUnity.Editor.Tools
 
             if (request.Status == StatusCode.Failure)
                 return new ErrorResponse($"Failed to list packages: {request.Error?.message ?? "Unknown error"}");
+
+            packageCache = request.Result != null ? request.Result.ToArray() : Array.Empty<PackageInfo>();
 
             var packages = request.Result
                 .Select(pkg => new
@@ -360,7 +357,7 @@ namespace MCPForUnity.Editor.Tools
 
             try
             {
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = GetKnownPackages();
                 var info = allPackages.FirstOrDefault(pkg =>
                     string.Equals(pkg.name, package, StringComparison.OrdinalIgnoreCase));
 
@@ -471,7 +468,7 @@ namespace MCPForUnity.Editor.Tools
                 registries.Add(newRegistry);
 
                 File.WriteAllText(manifestPath, manifest.ToString(Formatting.Indented));
-                Client.Resolve();
+                AssetDatabase.Refresh();
 
                 return new SuccessResponse(
                     $"Added scoped registry '{nameResult.Value}'.",
@@ -537,7 +534,7 @@ namespace MCPForUnity.Editor.Tools
                     manifest.Remove("scopedRegistries");
 
                 File.WriteAllText(manifestPath, manifest.ToString(Formatting.Indented));
-                Client.Resolve();
+                AssetDatabase.Refresh();
 
                 return new SuccessResponse($"Removed scoped registry '{removedName}'.");
             }
@@ -579,7 +576,7 @@ namespace MCPForUnity.Editor.Tools
         {
             try
             {
-                Client.Resolve();
+                AssetDatabase.Refresh();
                 return new SuccessResponse("Package resolution triggered. Unity will re-resolve all packages.");
             }
             catch (Exception e)
@@ -593,7 +590,7 @@ namespace MCPForUnity.Editor.Tools
         {
             try
             {
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = GetKnownPackages();
                 return new SuccessResponse(
                     "Package manager is available.",
                     new
@@ -721,7 +718,7 @@ namespace MCPForUnity.Editor.Tools
             {
                 string name = PackageJobManager.ExtractPackageName(packageName);
 
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                var allPackages = GetKnownPackages();
                 return allPackages
                     .Where(pkg => pkg.dependencies.Any(d =>
                         string.Equals(d.name, name, StringComparison.OrdinalIgnoreCase)))
@@ -732,6 +729,21 @@ namespace MCPForUnity.Editor.Tools
             {
                 return null;
             }
+        }
+
+        private static PackageInfo[] GetKnownPackages()
+        {
+            if (packageCache.Length > 0)
+                return packageCache;
+
+            var request = Client.List();
+            while (!request.IsCompleted)
+                System.Threading.Thread.Sleep(25);
+
+            if (request.Status == StatusCode.Success && request.Result != null)
+                packageCache = request.Result.ToArray();
+
+            return packageCache;
         }
     }
 }

@@ -1,6 +1,8 @@
 using System;
 using UnityEditor;
+#if UNITY_2021_2_OR_NEWER
 using UnityEditor.Build;
+#endif
 
 namespace MCPForUnity.Editor.Tools.Build
 {
@@ -63,6 +65,7 @@ namespace MCPForUnity.Editor.Tools.Build
             }
         }
 
+#if UNITY_2021_2_OR_NEWER
         public static NamedBuildTarget GetNamedBuildTarget(BuildTarget target)
         {
             return NamedBuildTarget.FromBuildTargetGroup(GetTargetGroup(target));
@@ -88,6 +91,31 @@ namespace MCPForUnity.Editor.Tools.Build
             namedTarget = NamedBuildTarget.FromBuildTargetGroup(targetGroup);
             return null;
         }
+#else
+        public static BuildTargetGroup GetNamedBuildTarget(BuildTarget target)
+        {
+            return GetTargetGroup(target);
+        }
+
+        public static string TryResolveNamedBuildTarget(string name, out BuildTargetGroup namedTarget)
+        {
+            if (!TryResolveBuildTarget(name, out var buildTarget))
+            {
+                namedTarget = BuildTargetGroup.Unknown;
+                return GetUnknownBuildTargetMessage(name);
+            }
+
+            namedTarget = GetTargetGroup(buildTarget);
+            if (namedTarget == BuildTargetGroup.Unknown)
+            {
+                return IsVisionOSTarget(buildTarget)
+                    ? "VisionOS build target is available, but its BuildTargetGroup is not exposed by this Unity editor installation."
+                    : $"Build target group could not be resolved for target '{buildTarget}'.";
+            }
+
+            return null;
+        }
+#endif
 
         public static string GetUnknownBuildTargetMessage(string name)
         {
@@ -154,12 +182,16 @@ namespace MCPForUnity.Editor.Tools.Build
 
         public static int ResolveSubtarget(string subtarget)
         {
+#if UNITY_2021_2_OR_NEWER
             if (string.IsNullOrEmpty(subtarget))
                 return (int)StandaloneBuildSubtarget.Player;
             string lower = subtarget.ToLowerInvariant();
             if (lower == "server")
                 return (int)StandaloneBuildSubtarget.Server;
             return (int)StandaloneBuildSubtarget.Player;
+#else
+            return 0;
+#endif
         }
     }
 }

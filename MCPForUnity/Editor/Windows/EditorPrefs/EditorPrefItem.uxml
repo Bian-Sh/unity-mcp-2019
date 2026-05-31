@@ -10,11 +10,11 @@
             <ui:TextField name="value-field" class="value-field" />
             
             <!-- Type dropdown -->
-            <ui:DropdownField name="type-dropdown" class="type-dropdown" choices="String,Int,Float,Bool" index="0" />
+            <ui:VisualElement name="type-dropdown-container" class="type-dropdown" />
             
             <!-- Action buttons -->
             <ui:VisualElement class="action-buttons">
-                <ui:Button name="save-button" text="✓" class="save-button" tooltip="Save changes" />
+                <ui:Button name="save-button" text="Save" class="save-button" tooltip="Save changes" />
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

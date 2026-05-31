@@ -179,8 +179,9 @@ namespace MCPForUnity.Editor.Tools.Animation
             if (conditionsToken is JArray conditionsArray)
             {
                 foreach (var condItem in conditionsArray)
-                {
-                    if (condItem is not JObject condObj) continue;
+                    {
+                    var condObj = condItem as JObject;
+                    if (condObj == null) continue;
 
                     string paramName = condObj["parameter"]?.ToString();
                     if (string.IsNullOrEmpty(paramName)) continue;

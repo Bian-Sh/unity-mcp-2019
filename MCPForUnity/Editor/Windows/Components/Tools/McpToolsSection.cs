@@ -11,6 +11,7 @@ using MCPForUnity.Editor.Services.Transport;
 using MCPForUnity.Editor.Tools;
 using UnityEditor;
 using UnityEditor.UIElements;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace MCPForUnity.Editor.Windows.Components.Tools
@@ -22,7 +23,7 @@ namespace MCPForUnity.Editor.Windows.Components.Tools
     /// </summary>
     public class McpToolsSection
     {
-        private readonly Dictionary<string, Toggle> toolToggleMap = new();
+        private readonly Dictionary<string, Toggle> toolToggleMap = new Dictionary<string, Toggle>();
         private Toggle projectScopedToolsToggle;
         private Label summaryLabel;
         private Label noteLabel;
@@ -31,12 +32,12 @@ namespace MCPForUnity.Editor.Windows.Components.Tools
         private Button rescanButton;
         private Button reconfigureButton;
         private VisualElement categoryContainer;
-        private List<ToolMetadata> allTools = new();
-        private readonly Dictionary<string, Toggle> groupToggleMap = new();
-        private readonly List<(Foldout foldout, string title, List<ToolMetadata> tools)> foldoutEntries = new();
+        private List<ToolMetadata> allTools = new List<ToolMetadata>();
+        private readonly Dictionary<string, Toggle> groupToggleMap = new Dictionary<string, Toggle>();
+        private readonly List<(Foldout foldout, string title, List<ToolMetadata> tools)> foldoutEntries = new List<(Foldout foldout, string title, List<ToolMetadata> tools)>();
 
         /// <summary>Human-friendly names for tool groups shown in the UI.</summary>
-        private static readonly Dictionary<string, string> GroupDisplayNames = new(StringComparer.OrdinalIgnoreCase)
+        private static readonly Dictionary<string, string> GroupDisplayNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "core", "Core Tools" },
             { "vfx", "VFX & Shaders" },
@@ -230,7 +231,11 @@ namespace MCPForUnity.Editor.Windows.Components.Tools
             groupCheckbox.tooltip = $"Toggle all tools in \"{title}\" on or off.";
 
             // Prevent the click from propagating to the foldout expand/collapse toggle
+#if UNITY_2020_1_OR_NEWER
             groupCheckbox.RegisterCallback<ClickEvent>(evt => evt.StopPropagation());
+#else
+            groupCheckbox.RegisterCallback<MouseDownEvent>(evt => evt.StopPropagation());
+#endif
             groupCheckbox.RegisterValueChangedCallback(evt =>
             {
                 evt.StopPropagation();
@@ -248,11 +253,11 @@ namespace MCPForUnity.Editor.Windows.Components.Tools
 
             if (isExperimental)
             {
-                var warning = new HelpBox(
+                var warning = new IMGUIContainer(() => EditorGUILayout.HelpBox(
                     "ProBuilder support is experimental. Mesh editing operations may produce " +
                     "unexpected results on complex topologies. Always save your scene before " +
                     "performing destructive operations.",
-                    HelpBoxMessageType.Warning);
+                    MessageType.Warning));
                 warning.style.marginTop = 4;
                 warning.style.marginBottom = 2;
                 foldout.Insert(0, warning);
@@ -653,14 +658,14 @@ namespace MCPForUnity.Editor.Windows.Components.Tools
 
             var field = new IntegerField
             {
-                value = Math.Clamp(currentValue, 1, BatchExecute.AbsoluteMaxCommandsPerBatch),
+                value = Mathf.Clamp(currentValue, 1, BatchExecute.AbsoluteMaxCommandsPerBatch),
                 style = { width = 60 }
             };
-            field.tooltip = $"Number of commands allowed per batch_execute call (1–{BatchExecute.AbsoluteMaxCommandsPerBatch}). Default: {BatchExecute.DefaultMaxCommandsPerBatch}.";
+            field.tooltip = $"Number of commands allowed per batch_execute call (1-{BatchExecute.AbsoluteMaxCommandsPerBatch}). Default: {BatchExecute.DefaultMaxCommandsPerBatch}.";
 
             field.RegisterValueChangedCallback(evt =>
             {
-                int clamped = Math.Clamp(evt.newValue, 1, BatchExecute.AbsoluteMaxCommandsPerBatch);
+                int clamped = Mathf.Clamp(evt.newValue, 1, BatchExecute.AbsoluteMaxCommandsPerBatch);
                 if (clamped != evt.newValue)
                 {
                     field.SetValueWithoutNotify(clamped);

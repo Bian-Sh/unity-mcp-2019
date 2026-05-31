@@ -1,5 +1,4 @@
 using System;
-using System.Buffers;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.WebSockets;
@@ -45,7 +44,7 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
         private CancellationTokenSource _connectionCts;
         private Task _receiveTask;
         private Task _keepAliveTask;
-        private readonly SemaphoreSlim _sendLock = new(1, 1);
+        private readonly SemaphoreSlim _sendLock = new SemaphoreSlim(1, 1);
 
         private Uri _endpointUri;
         private string _sessionId;
@@ -211,10 +210,12 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
 
             try
             {
-                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_lifecycleCts.Token);
-                timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
-                await SendPongAsync(timeoutCts.Token).ConfigureAwait(false);
-                return true;
+                using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(_lifecycleCts.Token))
+                {
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+                    await SendPongAsync(timeoutCts.Token).ConfigureAwait(false);
+                    return true;
+                }
             }
             catch (Exception ex)
             {
@@ -415,25 +416,23 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
                 return null;
             }
 
-            byte[] rentedBuffer = System.Buffers.ArrayPool<byte>.Shared.Rent(8192);
+            byte[] rentedBuffer = new byte[8192];
             var buffer = new ArraySegment<byte>(rentedBuffer);
-            using var ms = new MemoryStream(8192);
-
-            try
+            using (var ms = new MemoryStream(8192))
             {
+
                 while (!token.IsCancellationRequested)
                 {
                     WebSocketReceiveResult result = await _socket.ReceiveAsync(buffer, token).ConfigureAwait(false);
 
                     if (result.MessageType == WebSocketMessageType.Close)
                     {
-                        await HandleSocketClosureAsync(result.CloseStatusDescription ?? "Server closed connection").ConfigureAwait(false);
                         return null;
                     }
 
                     if (result.Count > 0)
                     {
-                        ms.Write(buffer.Array!, buffer.Offset, result.Count);
+                        ms.Write(buffer.Array, buffer.Offset, result.Count);
                     }
 
                     if (result.EndOfMessage)
@@ -448,10 +447,6 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
                 }
 
                 return Encoding.UTF8.GetString(ms.ToArray());
-            }
-            finally
-            {
-                System.Buffers.ArrayPool<byte>.Shared.Return(rentedBuffer);
             }
         }
 
@@ -619,9 +614,11 @@ namespace MCPForUnity.Editor.Services.Transport.Transports
             string responseJson;
             try
             {
-                using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
-                timeoutCts.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)));
-                responseJson = await TransportCommandDispatcher.ExecuteCommandJsonAsync(commandEnvelope.ToString(Formatting.None), timeoutCts.Token).ConfigureAwait(false);
+                using (var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token))
+                {
+                    timeoutCts.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, timeoutSeconds)));
+                    responseJson = await TransportCommandDispatcher.ExecuteCommandJsonAsync(commandEnvelope.ToString(Formatting.None), timeoutCts.Token).ConfigureAwait(false);
+                }
             }
             catch (OperationCanceledException)
             {

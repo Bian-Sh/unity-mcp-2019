@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
+#if UNITY_2020_2_OR_NEWER
 using Unity.Profiling;
 using Unity.Profiling.LowLevel.Unsafe;
+#endif
 using UnityEditor;
 
 namespace MCPForUnity.Editor.Tools.Profiler
@@ -14,6 +16,10 @@ namespace MCPForUnity.Editor.Tools.Profiler
     {
         internal static async Task<object> GetCountersAsync(JObject @params)
         {
+#if !UNITY_2020_2_OR_NEWER
+            await Task.CompletedTask;
+            return new ErrorResponse("Profiler counters require Unity 2020.2 or newer.");
+#else
             var p = new ToolParams(@params);
             var categoryResult = p.GetRequired("category");
             if (!categoryResult.IsSuccess)
@@ -74,8 +80,10 @@ namespace MCPForUnity.Editor.Tools.Profiler
                 category = categoryName,
                 counters = data,
             });
+#endif
         }
 
+#if UNITY_2020_2_OR_NEWER
         private static List<string> GetRequestedCounters(ToolParams p, ProfilerCategory category)
         {
             var explicitCounters = p.GetStringArray("counters");
@@ -151,5 +159,6 @@ namespace MCPForUnity.Editor.Tools.Profiler
                     return null;
             }
         }
+#endif
     }
 }

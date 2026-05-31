@@ -1,6 +1,9 @@
 using System;
 using MCPForUnity.Editor.Helpers;
 using Newtonsoft.Json.Linq;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEditor.SceneManagement;
 
 namespace MCPForUnity.Editor.Resources.Editor
@@ -28,9 +31,13 @@ namespace MCPForUnity.Editor.Resources.Editor
                 return new SuccessResponse("Retrieved prefab stage info.", new
                 {
                     isOpen = true,
-                    assetPath = stage.assetPath,
+                    assetPath = GetPrefabStageAssetPath(stage),
                     prefabRootName = root != null ? root.name : null,
+#if UNITY_2020_1_OR_NEWER
                     mode = stage.mode.ToString(),
+#else
+                    mode = "Unknown",
+#endif
                     isDirty = stage.scene.isDirty,
                 });
             }
@@ -38,6 +45,15 @@ namespace MCPForUnity.Editor.Resources.Editor
             {
                 return new ErrorResponse($"Error getting prefab stage: {e.Message}");
             }
+        }
+
+        private static string GetPrefabStageAssetPath(PrefabStage stage)
+        {
+#if UNITY_2020_1_OR_NEWER
+            return stage.assetPath;
+#else
+            return stage.prefabAssetPath;
+#endif
         }
     }
 }

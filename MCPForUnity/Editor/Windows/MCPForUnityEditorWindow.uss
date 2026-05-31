@@ -68,6 +68,8 @@
 
 /* Tabs */
 .tab-toolbar {
+    flex-direction: row;
+    flex-shrink: 0;
     margin: 8px 12px 0px 12px;
     padding: 0px;
     background-color: transparent;
@@ -76,9 +78,12 @@
     border-bottom-color: rgba(0, 0, 0, 0.15);
 }
 
-.tab-toolbar .unity-toolbar-button {
+.tab-toolbar .unity-toolbar-button,
+.tab-toolbar .mcp-tab-toggle {
     flex-grow: 1;
+    flex-shrink: 1;
     min-height: 32px;
+    height: 32px;
     font-size: 12px;
     border-width: 0px;
     background-color: transparent;
@@ -88,11 +93,13 @@
     margin-bottom: -1px;
 }
 
-.tab-toolbar .unity-toolbar-button:hover {
+.tab-toolbar .unity-toolbar-button:hover,
+.tab-toolbar .mcp-tab-toggle:hover {
     background-color: rgba(255, 255, 255, 0.05);
 }
 
-.tab-toolbar .unity-toolbar-button:checked {
+.tab-toolbar .unity-toolbar-button:checked,
+.tab-toolbar .mcp-tab-toggle:checked {
     background-color: rgba(0, 0, 0, 0.04);
     border-width: 1px;
     border-color: rgba(0, 0, 0, 0.15);
@@ -125,7 +132,8 @@
     background-color: rgba(0, 0, 0, 0.08);
 }
 
-.unity-theme-light .tab-toolbar .unity-toolbar-button:checked {
+.unity-theme-light .tab-toolbar .unity-toolbar-button:checked,
+.unity-theme-light .tab-toolbar .mcp-tab-toggle:checked {
     background-color: rgba(255, 255, 255, 0.5);
     border-color: rgba(0, 0, 0, 0.15);
     border-bottom-color: rgba(194, 194, 194, 1);

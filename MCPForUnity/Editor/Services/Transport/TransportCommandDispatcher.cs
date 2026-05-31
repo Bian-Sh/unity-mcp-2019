@@ -62,8 +62,8 @@ namespace MCPForUnity.Editor.Services.Transport
             }
         }
 
-        private static readonly Dictionary<string, PendingCommand> Pending = new();
-        private static readonly object PendingLock = new();
+        private static readonly Dictionary<string, PendingCommand> Pending = new Dictionary<string, PendingCommand>();
+        private static readonly object PendingLock = new object();
         private static bool updateHooked;
         private static bool initialised;
 
@@ -228,39 +228,39 @@ namespace MCPForUnity.Editor.Services.Transport
 
             try
             {
-            List<(string id, PendingCommand pending)> ready;
+                List<(string id, PendingCommand pending)> ready;
 
-            lock (PendingLock)
-            {
-                // Early exit inside lock to prevent per-frame List allocations (GitHub issue #577)
-                if (Pending.Count == 0)
+                lock (PendingLock)
                 {
-                    return;
-                }
-
-                ready = new List<(string, PendingCommand)>(Pending.Count);
-                foreach (var kvp in Pending)
-                {
-                    if (kvp.Value.IsExecuting)
+                    // Early exit inside lock to prevent per-frame List allocations (GitHub issue #577)
+                    if (Pending.Count == 0)
                     {
-                        continue;
+                        return;
                     }
 
-                    kvp.Value.IsExecuting = true;
-                    ready.Add((kvp.Key, kvp.Value));
+                    ready = new List<(string, PendingCommand)>(Pending.Count);
+                    foreach (var kvp in Pending)
+                    {
+                        if (kvp.Value.IsExecuting)
+                        {
+                            continue;
+                        }
+
+                        kvp.Value.IsExecuting = true;
+                        ready.Add((kvp.Key, kvp.Value));
+                    }
+
+                    if (ready.Count == 0)
+                    {
+                        UnhookUpdateIfIdle();
+                        return;
+                    }
                 }
 
-                if (ready.Count == 0)
+                foreach (var (id, pending) in ready)
                 {
-                    UnhookUpdateIfIdle();
-                    return;
+                    ProcessCommand(id, pending);
                 }
-            }
-
-            foreach (var (id, pending) in ready)
-            {
-                ProcessCommand(id, pending);
-            }
             }
             finally
             {
@@ -303,7 +303,7 @@ namespace MCPForUnity.Editor.Services.Transport
                 {
                     status = "error",
                     error = "Invalid JSON format",
-                    receivedText = commandText.Length > 50 ? commandText[..50] + "..." : commandText
+                    receivedText = commandText.Length > 50 ? commandText.Substring(0, 50) + "..." : commandText
                 };
                 pending.TrySetResult(JsonConvert.SerializeObject(invalidJsonResponse));
                 RemovePending(id, pending);
@@ -381,7 +381,7 @@ namespace MCPForUnity.Editor.Services.Transport
                             logStatus = "ERROR";
                             logError = t.Exception?.InnerException?.Message;
                         }
-                        else if (t.IsCompletedSuccessfully && t.Result != null)
+                        else if (t.Status == TaskStatus.RanToCompletion && t.Result != null)
                         {
                             try
                             {
@@ -429,8 +429,9 @@ namespace MCPForUnity.Editor.Services.Transport
             PendingCommand pending = null;
             lock (PendingLock)
             {
-                if (Pending.Remove(id, out pending))
+                if (Pending.TryGetValue(id, out pending))
                 {
+                    Pending.Remove(id);
                     UnhookUpdateIfIdle();
                 }
             }

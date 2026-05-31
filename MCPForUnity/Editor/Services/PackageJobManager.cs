@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using MCPForUnity.Editor.Helpers;
+using System.Reflection;
 using Newtonsoft.Json;
 using UnityEditor;
 using UnityEditor.PackageManager;
@@ -31,8 +32,8 @@ namespace MCPForUnity.Editor.Services
         private const int MaxJobsToKeep = 10;
         private const long DomainReloadTimeoutMs = 120_000;
 
-        private static readonly object LockObj = new();
-        private static readonly Dictionary<string, PackageJob> Jobs = new();
+        private static readonly object LockObj = new object();
+        private static readonly Dictionary<string, PackageJob> Jobs = new Dictionary<string, PackageJob>();
 
         static PackageJobManager()
         {
@@ -63,12 +64,13 @@ namespace MCPForUnity.Editor.Services
             if (string.IsNullOrWhiteSpace(status))
                 return PackageJobStatus.Running;
 
-            return status.Trim().ToLowerInvariant() switch
+            var key = status.Trim().ToLowerInvariant();
+            switch (key)
             {
-                "succeeded" => PackageJobStatus.Succeeded,
-                "failed" => PackageJobStatus.Failed,
-                _ => PackageJobStatus.Running
-            };
+                case "succeeded": return PackageJobStatus.Succeeded;
+                case "failed": return PackageJobStatus.Failed;
+                default: return PackageJobStatus.Running;
+            }
         }
 
         private static void TryRestoreFromSessionState()
@@ -128,7 +130,21 @@ namespace MCPForUnity.Editor.Services
             try
             {
                 string packageName = ExtractPackageName(job.Package);
-                var allPackages = PackageInfo.GetAllRegisteredPackages();
+                PackageInfo[] allPackages = null;
+                try
+                {
+                    var method = typeof(PackageInfo).GetMethod("GetAllRegisteredPackages", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                    if (method != null)
+                        allPackages = (PackageInfo[])method.Invoke(null, null);
+                }
+                catch { }
+
+                if (allPackages == null)
+                {
+                    // API not available on this Unity version: cannot recover job state reliably.
+                    return;
+                }
+
                 var info = FindPackageInfo(allPackages, packageName, job.Package);
 
                 if (job.Operation == "add" || job.Operation == "embed")

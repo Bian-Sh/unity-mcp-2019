@@ -1,6 +1,4 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <Style src="Components/Common.uss" />
-    <Style src="MCPSetupWindow.uss" />
     <ui:ScrollView name="root-container" mode="Vertical">
         <ui:Label text="MCP for Unity Setup" name="title" class="title" />
 

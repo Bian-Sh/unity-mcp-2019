@@ -215,7 +215,11 @@ namespace MCPForUnity.Editor.Tools
                     target = EditorUserBuildSettings.activeBuildTarget.ToString(),
                     target_group = BuildTargetMapping.GetTargetGroup(
                         EditorUserBuildSettings.activeBuildTarget).ToString(),
+#if UNITY_2021_2_OR_NEWER
                     subtarget = EditorUserBuildSettings.standaloneBuildSubtarget.ToString()
+#else
+                    subtarget = "player"
+#endif
                 });
             }
 
@@ -238,6 +242,7 @@ namespace MCPForUnity.Editor.Tools
             string previousTarget = EditorUserBuildSettings.activeBuildTarget.ToString();
 
             string subtargetStr = p.Get("subtarget");
+#if UNITY_2021_2_OR_NEWER
             if (!string.IsNullOrEmpty(subtargetStr))
             {
                 string subtargetLower = subtargetStr.ToLowerInvariant();
@@ -246,6 +251,7 @@ namespace MCPForUnity.Editor.Tools
                 else if (subtargetLower == "player")
                     EditorUserBuildSettings.standaloneBuildSubtarget = StandaloneBuildSubtarget.Player;
             }
+#endif
 
             // SwitchActiveBuildTarget is synchronous — blocks until reimport completes
             EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
@@ -477,7 +483,7 @@ namespace MCPForUnity.Editor.Tools
                     if (EditorUserBuildSettings.activeBuildTarget != child.Target)
                         EditorUserBuildSettings.SwitchActiveBuildTarget(group, child.Target);
 
-                    int subtarget = (int)StandaloneBuildSubtarget.Player;
+                    int subtarget = BuildTargetMapping.ResolveSubtarget(null);
                     var options = BuildRunner.CreateBuildOptions(
                         child.Target, child.OutputPath, null, buildOpts, subtarget);
                     BuildRunner.ScheduleBuild(child, options);

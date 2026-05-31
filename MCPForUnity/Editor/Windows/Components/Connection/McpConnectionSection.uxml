@@ -1,11 +1,10 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="True">
-    <Style src="../Common.uss" />
     <ui:VisualElement name="connection-section" class="section">
         <ui:Label text="Server" class="section-title" />
         <ui:VisualElement class="section-content">
             <ui:VisualElement class="setting-row">
                 <ui:Label text="Transport:" class="setting-label" />
-                <uie:EnumField name="transport-dropdown" class="setting-dropdown-inline" />
+                <ui:VisualElement name="transport-dropdown-container" class="setting-dropdown-inline" />
             </ui:VisualElement>
             <ui:VisualElement name="transport-mismatch-warning" class="warning-banner">
                 <ui:Label name="transport-mismatch-text" class="warning-banner-text" />

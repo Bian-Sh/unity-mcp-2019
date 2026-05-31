@@ -13,6 +13,97 @@ using UnityEngine.UIElements;
 
 namespace MCPForUnity.Editor.Tools
 {
+#if !UNITY_2021_2_OR_NEWER
+    [McpForUnityTool("manage_ui", AutoRegister = false, Group = "ui")]
+    public static class ManageUI
+    {
+        public static object HandleCommand(JObject @params)
+        {
+            var p = new ToolParams(@params);
+            string action = p.Get("action") ?? p.Get("operation");
+
+            switch (action?.ToLowerInvariant())
+            {
+                case "create_file":
+                case "read_file":
+                case "update_file":
+                case "delete_file":
+                case "list_assets":
+                    return ManageUI2019FileOps.HandleCommand(@params);
+                default:
+                    return new ErrorResponse("Runtime UI Toolkit document/panel operations require Unity 2021.2 or newer. Unity 2019 supports basic UXML/USS file operations only.");
+            }
+        }
+    }
+
+    internal static class ManageUI2019FileOps
+    {
+        public static object HandleCommand(JObject @params)
+        {
+            var p = new ToolParams(@params);
+            string action = p.Get("action") ?? p.Get("operation");
+
+            switch (action?.ToLowerInvariant())
+            {
+                case "create_file": return CreateFile(p);
+                case "read_file": return ReadFile(p);
+                case "update_file": return UpdateFile(p);
+                case "delete_file": return DeleteFile(p);
+                case "list_assets": return ListAssets(p);
+                default: return new ErrorResponse("Unknown UI action.");
+            }
+        }
+
+        private static object CreateFile(ToolParams p)
+        {
+            string path = AssetPathUtility.SanitizeAssetPath(p.Get("path"));
+            if (string.IsNullOrEmpty(path)) return new ErrorResponse("'path' is required.");
+            string extension = Path.GetExtension(path);
+            if (!string.Equals(extension, ".uxml", StringComparison.OrdinalIgnoreCase) && !string.Equals(extension, ".uss", StringComparison.OrdinalIgnoreCase))
+                return new ErrorResponse("Only .uxml and .uss files are supported.");
+            if (File.Exists(path)) return new ErrorResponse($"File already exists: {path}");
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            File.WriteAllText(path, p.Get("content") ?? string.Empty, new UTF8Encoding(false));
+            AssetDatabase.ImportAsset(path);
+            return new SuccessResponse($"Created {path}", new { path });
+        }
+
+        private static object ReadFile(ToolParams p)
+        {
+            string path = AssetPathUtility.SanitizeAssetPath(p.Get("path"));
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new ErrorResponse($"File not found: {path}");
+            return new SuccessResponse($"Read {path}", new { path, content = File.ReadAllText(path) });
+        }
+
+        private static object UpdateFile(ToolParams p)
+        {
+            string path = AssetPathUtility.SanitizeAssetPath(p.Get("path"));
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new ErrorResponse($"File not found: {path}");
+            File.WriteAllText(path, p.Get("content") ?? string.Empty, new UTF8Encoding(false));
+            AssetDatabase.ImportAsset(path);
+            return new SuccessResponse($"Updated {path}", new { path });
+        }
+
+        private static object DeleteFile(ToolParams p)
+        {
+            string path = AssetPathUtility.SanitizeAssetPath(p.Get("path"));
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return new ErrorResponse($"File not found: {path}");
+            AssetDatabase.DeleteAsset(path);
+            return new SuccessResponse($"Deleted {path}", new { path });
+        }
+
+        private static object ListAssets(ToolParams p)
+        {
+            string folder = AssetPathUtility.SanitizeAssetPath(p.Get("folder") ?? "Assets");
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder)) return new ErrorResponse($"Folder not found: {folder}");
+            var files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories)
+                .Where(path => path.EndsWith(".uxml", StringComparison.OrdinalIgnoreCase) || path.EndsWith(".uss", StringComparison.OrdinalIgnoreCase))
+                .Select(path => path.Replace('\\', '/'))
+                .ToArray();
+            return new SuccessResponse($"Found {files.Length} UI asset(s).", new { files });
+        }
+    }
+#else
     [McpForUnityTool("manage_ui", AutoRegister = false, Group = "ui")]
     public static class ManageUI
     {
@@ -807,7 +898,7 @@ namespace MCPForUnity.Editor.Tools
 
         // Persistent RenderTextures keyed by PanelSettings instance ID so the panel
         // renders into them automatically every frame.
-        private static readonly Dictionary<int, RenderTexture> s_panelRTs = new();
+        private static readonly Dictionary<int, RenderTexture> s_panelRTs = new Dictionary<int, RenderTexture>();
 
         // Play-mode coroutine capture state.  Only one capture is in-flight at a
         // time; concurrent render_ui calls while a capture is pending are rejected
@@ -1909,4 +2000,5 @@ namespace MCPForUnity.Editor.Tools
             }
         }
     }
+#endif
 }

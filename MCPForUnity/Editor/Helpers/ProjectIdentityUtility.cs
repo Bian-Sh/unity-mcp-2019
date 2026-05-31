@@ -89,7 +89,7 @@ namespace MCPForUnity.Editor.Helpers
         {
             try
             {
-                using SHA1 sha1 = SHA1.Create();
+                SHA1 sha1 = SHA1.Create();
                 byte[] bytes = Encoding.UTF8.GetBytes(dataPath);
                 byte[] hashBytes = sha1.ComputeHash(bytes);
                 var sb = new StringBuilder();
@@ -113,7 +113,7 @@ namespace MCPForUnity.Editor.Helpers
                 projectPath = projectPath.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 if (projectPath.EndsWith("Assets", StringComparison.OrdinalIgnoreCase))
                 {
-                    projectPath = projectPath[..^6].TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    projectPath = projectPath.Substring(0, projectPath.Length - 6).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
                 }
 
                 string name = Path.GetFileName(projectPath);

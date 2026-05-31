@@ -1,13 +1,19 @@
 using System;
 using System.Collections.Generic;
 using UnityEditor;
+#if UNITY_2021_2_OR_NEWER
 using UnityEditor.Build;
+#endif
 
 namespace MCPForUnity.Editor.Tools.Build
 {
     public static class BuildSettingsHelper
     {
+#if UNITY_2021_2_OR_NEWER
         public static object ReadProperty(string property, NamedBuildTarget namedTarget)
+#else
+        public static object ReadProperty(string property, BuildTargetGroup namedTarget)
+#endif
         {
             switch (property.ToLowerInvariant())
             {
@@ -23,17 +29,32 @@ namespace MCPForUnity.Editor.Tools.Build
                     var backend = PlayerSettings.GetScriptingBackend(namedTarget);
                     return new { property, value = backend == ScriptingImplementation.IL2CPP ? "il2cpp" : "mono" };
                 case "defines":
+#if UNITY_2021_2_OR_NEWER
                     return new { property, value = PlayerSettings.GetScriptingDefineSymbols(namedTarget) };
+#else
+                    return new { property, value = PlayerSettings.GetScriptingDefineSymbolsForGroup(namedTarget) };
+#endif
                 case "architecture":
                     var arch = PlayerSettings.GetArchitecture(namedTarget);
-                    string archName = arch switch { 0 => "x86_64", 1 => "arm64", 2 => "universal", _ => "unknown" };
+                    string archName;
+                    switch (arch)
+                    {
+                        case 0: archName = "x86_64"; break;
+                        case 1: archName = "arm64"; break;
+                        case 2: archName = "universal"; break;
+                        default: archName = "unknown"; break;
+                    }
                     return new { property, value = archName, raw = arch };
                 default:
                     return null;
             }
         }
 
+#if UNITY_2021_2_OR_NEWER
         public static string WriteProperty(string property, string value, NamedBuildTarget namedTarget)
+#else
+        public static string WriteProperty(string property, string value, BuildTargetGroup namedTarget)
+#endif
         {
             try
             {
@@ -61,16 +82,19 @@ namespace MCPForUnity.Editor.Tools.Build
                         PlayerSettings.SetScriptingBackend(namedTarget, impl);
                         return null;
                     case "defines":
+#if UNITY_2021_2_OR_NEWER
                         PlayerSettings.SetScriptingDefineSymbols(namedTarget, value);
+#else
+                        PlayerSettings.SetScriptingDefineSymbolsForGroup(namedTarget, value);
+#endif
                         return null;
                     case "architecture":
-                        int arch = value.ToLowerInvariant() switch
-                        {
-                            "x86_64" or "none" or "default" => 0,
-                            "arm64" => 1,
-                            "universal" => 2,
-                            _ => -1
-                        };
+                        string archValue = value.ToLowerInvariant();
+                        int arch;
+                        if (archValue == "x86_64" || archValue == "none" || archValue == "default") arch = 0;
+                        else if (archValue == "arm64") arch = 1;
+                        else if (archValue == "universal") arch = 2;
+                        else arch = -1;
                         if (arch < 0)
                             return $"Unknown architecture '{value}'. Valid: x86_64, arm64, universal";
                         PlayerSettings.SetArchitecture(namedTarget, arch);
