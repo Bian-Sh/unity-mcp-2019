@@ -73,25 +73,13 @@ namespace MCPForUnity.Editor.Windows
 
         public static void ShowWindow()
         {
-            var existingWindows = UnityEngine.Resources.FindObjectsOfTypeAll<MCPForUnityEditorWindow>();
-            for (int i = 0; i < existingWindows.Length; i++)
-            {
-                try
-                {
-                    existingWindows[i].Close();
-                }
-                catch (Exception ex)
-                {
-                    McpLog.Warn($"Error closing stale MCP window: {ex.Message}");
-                }
-            }
-
-            MCPForUnityEditorWindow window = CreateInstance<MCPForUnityEditorWindow>();
-
+            MCPForUnityEditorWindow window = GetWindow<MCPForUnityEditorWindow>("MCP For Unity", true);
             window.titleContent = new GUIContent("MCP For Unity");
             window.minSize = new Vector2(500, 340);
-            window.ShowUtility();
-            window.position = new Rect(120, 120, 900, 700);
+            if (window.position.width < 500 || window.position.height < 340)
+            {
+                window.position = new Rect(120, 120, 900, 700);
+            }
             window.Focus();
             window.Repaint();
             EditorApplication.delayCall += () =>
