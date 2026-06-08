@@ -14,7 +14,11 @@ namespace MCPForUnity.Editor.Setup
     public static class SkillSyncService
     {
         private const string DefaultRepoUrl = "https://github.com/CoplayDev/unity-mcp";
-        private const string SkillSubdir = ".claude/skills/unity-mcp-skill";
+        private static readonly string[] SkillSubdirs =
+        {
+            ".claude/skills/unity-mcp-skill",
+            ".claude/skills/unity-sprite-sheet-slicer"
+        };
         private const string SyncOwnershipMarker = ".unity-mcp-skill-sync";
         private const string LastSyncedCommitKeyPrefix = "UnityMcpSkillSync.LastSyncedCommit";
 
@@ -72,48 +76,69 @@ namespace MCPForUnity.Editor.Setup
             }
 
             log?.Invoke($"Target repository: {repoInfo.Owner}/{repoInfo.Repo}@{branch}");
-            var snapshot = FetchRemoteSnapshot(repoInfo, branch, SkillSubdir, log);
-            var installPath = ResolveAndValidateInstallPath(installDir);
+            var installRoot = ResolveAndValidateInstallPath(installDir);
+            var totalAdded = 0;
+            var totalUpdated = 0;
+            var totalDeleted = 0;
+            string syncedCommitSha = null;
 
-            if (!Directory.Exists(installPath))
+            foreach (var skillSubdir in SkillSubdirs)
             {
-                Directory.CreateDirectory(installPath);
+                var skillName = GetTopLevelSegment(skillSubdir.Substring(".claude/skills/".Length));
+                if (string.IsNullOrWhiteSpace(skillName))
+                {
+                    throw new InvalidOperationException($"Skill source path is invalid: {skillSubdir}");
+                }
+
+                log?.Invoke($"--- Skill: {skillName} ---");
+                var snapshot = FetchRemoteSnapshot(repoInfo, branch, skillSubdir, log);
+                var installPath = Path.Combine(installRoot, skillName);
+
+                if (!Directory.Exists(installPath))
+                {
+                    Directory.CreateDirectory(installPath);
+                }
+
+                var localFiles = ListFiles(installPath);
+                var pathComparison = GetPathComparison(installPath);
+                var pathComparer = GetPathComparer(pathComparison);
+                EnsureManagedInstallRoot(installPath, localFiles.Keys, snapshot.Files.Keys, pathComparer);
+                var plan = BuildPlan(snapshot.Files, localFiles, pathComparer);
+                var commitChanged = !string.Equals(lastSyncedCommit, snapshot.CommitSha, StringComparison.Ordinal);
+
+                log?.Invoke($"Remote Commit: {ShortCommit(lastSyncedCommit)} -> {ShortCommit(snapshot.CommitSha)}");
+                log?.Invoke(commitChanged
+                    ? $"Commit: detected newer commit on {branch}."
+                    : $"Commit: no new commit on {branch} since last sync.");
+                log?.Invoke($"Plan => Added:{plan.Added.Count} Updated:{plan.Updated.Count} Deleted:{plan.Deleted.Count}");
+                LogPlanDetails(plan, log);
+
+                ApplyPlan(repoInfo, snapshot.CommitSha, snapshot.SubdirPath, installPath, plan, pathComparison, log);
+                log?.Invoke($"Files mirrored to install directory: {installPath}");
+
+                ValidateFileHashes(installPath, snapshot.Files, pathComparison, log);
+                syncedCommitSha = snapshot.CommitSha;
+                totalAdded += plan.Added.Count;
+                totalUpdated += plan.Updated.Count;
+                totalDeleted += plan.Deleted.Count;
             }
 
-            var localFiles = ListFiles(installPath);
-            var pathComparison = GetPathComparison(installPath);
-            var pathComparer = GetPathComparer(pathComparison);
-            EnsureManagedInstallRoot(installPath, localFiles.Keys, snapshot.Files.Keys, pathComparer);
-            var plan = BuildPlan(snapshot.Files, localFiles, pathComparer);
-            var commitChanged = !string.Equals(lastSyncedCommit, snapshot.CommitSha, StringComparison.Ordinal);
-
-            log?.Invoke($"Remote Commit: {ShortCommit(lastSyncedCommit)} -> {ShortCommit(snapshot.CommitSha)}");
-            log?.Invoke(commitChanged
-                ? $"Commit: detected newer commit on {branch}."
-                : $"Commit: no new commit on {branch} since last sync.");
-            log?.Invoke($"Plan => Added:{plan.Added.Count} Updated:{plan.Updated.Count} Deleted:{plan.Deleted.Count}");
-            LogPlanDetails(plan, log);
-
-            ApplyPlan(repoInfo, snapshot.CommitSha, snapshot.SubdirPath, installPath, plan, pathComparison, log);
-            log?.Invoke("Files mirrored to install directory.");
-
-            ValidateFileHashes(installPath, snapshot.Files, pathComparison, log);
-            log?.Invoke($"Synced to commit: {snapshot.CommitSha}");
+            log?.Invoke($"Synced to commit: {syncedCommitSha}");
             log?.Invoke("=== Sync Done ===");
 
             return new SyncResult
             {
                 Success = true,
-                Added = plan.Added.Count,
-                Updated = plan.Updated.Count,
-                Deleted = plan.Deleted.Count,
-                CommitSha = snapshot.CommitSha
+                Added = totalAdded,
+                Updated = totalUpdated,
+                Deleted = totalDeleted,
+                CommitSha = syncedCommitSha
             };
         }
 
         private static string GetLastSyncedCommitKey(string repoUrl, string branch)
         {
-            var scope = $"{repoUrl}|{branch}|{NormalizeRemotePath(SkillSubdir)}";
+            var scope = $"{repoUrl}|{branch}|{string.Join(",", SkillSubdirs.Select(NormalizeRemotePath))}";
             using (var sha256 = SHA256.Create())
             {
                 var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(scope));
@@ -571,7 +596,7 @@ namespace MCPForUnity.Editor.Setup
             {
                 throw new InvalidOperationException(
                     "Install Dir contains unmanaged files. " +
-                    "Please choose an empty folder or an existing unity-mcp-skill folder.");
+                    "Please choose an empty folder or an existing Unity MCP managed skill folder.");
             }
 
             File.WriteAllText(markerPath, "managed-by-unity-mcp-skill-sync");

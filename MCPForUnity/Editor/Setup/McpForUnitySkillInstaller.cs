@@ -172,7 +172,7 @@ namespace MCPForUnity.Editor.Setup
         private static string GetDefaultInstallDir(string userHome, string cliType)
         {
             var baseDir = IsClaudeCli(cliType) ? ".claude" : ".codex";
-            return Path.Combine(userHome, baseDir, "skills/unity-mcp-skill");
+            return Path.Combine(userHome, baseDir, "skills");
         }
 
         private static bool IsClaudeCli(string cliType)
