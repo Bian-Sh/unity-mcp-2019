@@ -23,6 +23,7 @@ Use this skill to perform an AI-guided semantic upgrade from `CoplayDev/unity-mc
 - This fork targets Unity 2019-era compatibility and C# 7.3 syntax constraints.
 - Python MCP tools, Python CLI commands, MCP resources, and Unity C# tools are separate layers; do not assume one is generated from another.
 - Unity API compatibility should be centralized through runtime helper shims when possible, not scattered across call sites.
+- Installable AI assistant skills that must ship with copied Unity packages live under `MCPForUnity/Skill~/`; do not rely on repository-root `.claude/skills/` or `.agents/skills/` for files that must survive copying only the `MCPForUnity/` folder.
 
 ## Recommended Workflow
 
@@ -59,6 +60,7 @@ Use this skill to perform an AI-guided semantic upgrade from `CoplayDev/unity-mc
    - Replace newer Unity APIs with compatibility helpers where needed.
    - Ensure new Unity `.cs` assets have matching `.meta` and are included in relevant `.csproj` files when the project tracks them.
    - Re-check MCP tool names, parameter names, response shapes, and error semantics across Python and C#.
+   - If upstream changes assistant skill installation, verify the right-bottom `Install Skills` button path in `McpClientConfigSection` and `SkillSyncService`; package-shipped skills must be copied from the installed package root (`MCPForUnity/Skill~/`) so direct folder-copy installs work offline.
 
 7. Validate.
    - Run the narrowest relevant tests first.
@@ -104,6 +106,17 @@ Review upstream C# files for modern syntax before finalizing:
 - Nullable reference type annotations if the project configuration cannot support them safely.
 
 Prefer explicit, readable C# 7.3 equivalents over clever rewrites.
+
+## Skill Packaging Checklist
+
+When upstream adds, removes, or changes assistant skills:
+
+- Treat `MCPForUnity/Skill~/` as the package-shipped source of truth for skills installed by the Unity Editor UI.
+- Keep each skill as an independent subdirectory with its own `SKILL.md`, for example `MCPForUnity/Skill~/unity-mcp-skill/` and `MCPForUnity/Skill~/unity-sprite-sheet-slicer/`.
+- Remember that folders ending in `~` are intentionally hidden from Unity's AssetDatabase / Inspector; do not add `.meta` files for this ignored payload.
+- Verify that copying only `MCPForUnity/` to a temporary folder still includes every skill required by the `Install Skills` button.
+- Do not assume repository-root `.claude/skills/` or `.agents/skills/` will be present in installed Unity projects; those paths are development/distribution aids, not the direct-copy package payload.
+- If remote GitHub skill sync remains available for a separate maintenance window, keep it clearly separate from the default packaged-skill install path.
 
 ## API Alignment Checklist
 
