@@ -97,11 +97,11 @@ namespace MCPForUnityTests.Editor.Tools
             var data = result["data"] as JObject;
             Assert.IsNotNull(data, "Expected data payload");
 
-            _createdGuid = data!["guid"]?.ToString();
+            _createdGuid = data["guid"]?.ToString();
             _createdAssetPath = data["path"]?.ToString();
 
             Assert.IsTrue(AssetDatabase.IsValidFolder(_nestedFolder), "Nested folder should be created.");
-            Assert.IsTrue(_createdAssetPath!.StartsWith(_nestedFolder, StringComparison.Ordinal), $"Asset should be created under {_nestedFolder}: {_createdAssetPath}");
+            Assert.IsTrue(_createdAssetPath.StartsWith(_nestedFolder, StringComparison.Ordinal), $"Asset should be created under {_nestedFolder}: {_createdAssetPath}");
             Assert.IsTrue(_createdAssetPath.EndsWith(".asset", StringComparison.OrdinalIgnoreCase), "Asset should have .asset extension.");
             Assert.IsFalse(string.IsNullOrWhiteSpace(_createdGuid), "Expected guid in response.");
 
@@ -135,15 +135,15 @@ namespace MCPForUnityTests.Editor.Tools
             var data = result["data"] as JObject;
             Assert.IsNotNull(data, "Expected data payload");
 
-            _createdGuid = data!["guid"]?.ToString();
+            _createdGuid = data["guid"]?.ToString();
             _createdAssetPath = data["path"]?.ToString();
 
-            Assert.IsTrue(_createdAssetPath!.StartsWith(_runRoot, StringComparison.Ordinal), $"Asset should be created under {_runRoot}: {_createdAssetPath}");
+            Assert.IsTrue(_createdAssetPath.StartsWith(_runRoot, StringComparison.Ordinal), $"Asset should be created under {_runRoot}: {_createdAssetPath}");
             Assert.IsFalse(string.IsNullOrWhiteSpace(_createdGuid), "Expected guid in response.");
 
             var asset = AssetDatabase.LoadAssetAtPath<ManageScriptableObjectTestDefinition>(_createdAssetPath);
             Assert.IsNotNull(asset, "Created asset should load as TestDefinition.");
-            Assert.AreEqual("Hello", asset!.DisplayName, "Private [SerializeField] string should be set via SerializedProperty.");
+            Assert.AreEqual("Hello", asset.DisplayName, "Private [SerializeField] string should be set via SerializedProperty.");
             Assert.AreEqual(42, asset.BaseNumber, "Inherited serialized field should be set via SerializedProperty.");
             Assert.AreEqual("note!", asset.NestedNote, "Nested struct field should be set via SerializedProperty path.");
         }
@@ -198,14 +198,14 @@ namespace MCPForUnityTests.Editor.Tools
             // Assert patch results are ok so failures are visible even if the tool returns success.
             var results = modRes["data"]?["results"] as JArray;
             Assert.IsNotNull(results, "Expected per-patch results in response.");
-            foreach (var r in results!)
+            foreach (var r in results)
             {
                 Assert.IsTrue(r.Value<bool>("ok"), $"Patch failed: {r}");
             }
 
             var asset = AssetDatabase.LoadAssetAtPath<ManageScriptableObjectTestDefinition>(_createdAssetPath);
             Assert.IsNotNull(asset);
-            Assert.AreEqual(2, asset!.Materials.Count, "List should be resized to 2.");
+            Assert.AreEqual(2, asset.Materials.Count, "List should be resized to 2.");
 
             var matA = AssetDatabase.LoadAssetAtPath<Material>(_matAPath);
             var matB = AssetDatabase.LoadAssetAtPath<Material>(_matBPath);
@@ -297,9 +297,9 @@ namespace MCPForUnityTests.Editor.Tools
 
             var path = res["data"]?["path"]?.ToString();
             Assert.IsNotNull(path, "Expected path in response.");
-            Assert.IsTrue(path!.StartsWith("Assets/Temp/ManageScriptableObjectTests/SlashProbe/Deep", StringComparison.Ordinal),
+            Assert.IsTrue(path.StartsWith("Assets/Temp/ManageScriptableObjectTests/SlashProbe/Deep", StringComparison.Ordinal),
                 $"Expected sanitized Assets-rooted path, got: {path}");
-            Assert.IsFalse(path.Contains("//", StringComparison.Ordinal), $"Path should not contain double slashes: {path}");
+            Assert.IsFalse(path.IndexOf("//", StringComparison.Ordinal) >= 0, $"Path should not contain double slashes: {path}");
         }
     }
 }

@@ -3,6 +3,9 @@ using MCPForUnity.Editor.Tools.Prefabs;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEditor;
+#if !UNITY_2021_2_OR_NEWER
+using UnityEditor.Experimental.SceneManagement;
+#endif
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using static MCPForUnityTests.Editor.TestUtilities;
@@ -78,7 +81,7 @@ namespace MCPForUnityTests.Editor.Tools
 
                 var stage = PrefabStageUtility.GetCurrentPrefabStage();
                 Assert.IsNotNull(stage);
-                Assert.AreEqual(prefabPath, stage.assetPath);
+                Assert.AreEqual(prefabPath, GetPrefabStageAssetPath(stage));
 
                 var closeResult = ToJObject(ManagePrefabs.HandleCommand(new JObject
                 {
@@ -139,7 +142,7 @@ namespace MCPForUnityTests.Editor.Tools
                 Assert.IsNotNull(currentStage, "Expected a prefab stage to be open.");
                 Assert.AreEqual(
                     prefabPath,
-                    currentStage.assetPath,
+                    GetPrefabStageAssetPath(currentStage),
                     "prefabPath should take precedence over path when both are provided."
                 );
             }
@@ -229,6 +232,15 @@ namespace MCPForUnityTests.Editor.Tools
             }));
 
             Assert.IsTrue(openResult.Value<bool>("success"), $"Expected open to succeed but got: {openResult}");
+        }
+
+        private static string GetPrefabStageAssetPath(PrefabStage stage)
+        {
+#if UNITY_2020_1_OR_NEWER
+            return stage.assetPath;
+#else
+            return stage.prefabAssetPath;
+#endif
         }
 
         private static string CreateTestPrefab(string rootName)

@@ -135,7 +135,7 @@ namespace MCPForUnityTests.Editor.Helpers
             var unity = (JObject)root.SelectToken("mcpServers.unityMCP");
             Assert.NotNull(unity, "Expected mcpServers.unityMCP node");
             Assert.NotNull(unity["env"], "env should be present for all clients");
-            Assert.IsTrue(unity["env"]!.Type == JTokenType.Object, "env should be an object");
+            Assert.IsTrue(unity["env"].Type == JTokenType.Object, "env should be an object");
             Assert.AreEqual(false, (bool)unity["disabled"], "disabled:false should be set for Kiro when missing");
             AssertTransportConfiguration(unity, client);
         }
@@ -257,7 +257,7 @@ namespace MCPForUnityTests.Editor.Helpers
             var root = JObject.Parse(File.ReadAllText(configPath));
             var unity = (JObject)root.SelectToken("mcpServers.unityMCP");
             Assert.NotNull(unity, "Expected mcpServers.unityMCP node");
-            Assert.AreEqual("bar", (string)unity["env"]!["FOO"], "Existing env should be preserved");
+            Assert.AreEqual("bar", (string)unity["env"]["FOO"], "Existing env should be preserved");
             Assert.AreEqual(true, (bool)unity["disabled"], "Existing disabled value should be preserved");
             AssertTransportConfiguration(unity, client);
         }
@@ -356,15 +356,20 @@ namespace MCPForUnityTests.Editor.Helpers
                     RedirectStandardError = true,
                     CreateNoWindow = true
                 };
-                using var p = Process.Start(psi);
-                p?.WaitForExit(2000);
+                using (var p = Process.Start(psi))
+                {
+                    if (p != null)
+                    {
+                        p.WaitForExit(2000);
+                    }
+                }
             }
             catch { /* best-effort on non-Unix */ }
         }
 
         private static void WriteInitialConfig(string configPath, bool isVSCode, string command, string directory)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(configPath));
             JObject root;
             if (isVSCode)
             {

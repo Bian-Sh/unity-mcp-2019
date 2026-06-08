@@ -427,7 +427,7 @@ namespace MCPForUnityTests.Editor.Windows.Characterization
             var uiFields = fields.Where(f =>
                 typeof(VisualElement).IsAssignableFrom(f.FieldType) ||
                 typeof(Button).IsAssignableFrom(f.FieldType) ||
-                typeof(DropdownField).IsAssignableFrom(f.FieldType) ||
+                f.FieldType.Name == "DropdownField" ||
                 typeof(Foldout).IsAssignableFrom(f.FieldType)
             ).ToArray();
 

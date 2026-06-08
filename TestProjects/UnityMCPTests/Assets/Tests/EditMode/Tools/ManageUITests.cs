@@ -278,6 +278,9 @@ namespace MCPForUnityTests.Editor.Tools
         [Test]
         public void CreatePanelSettings_CreatesAsset()
         {
+#if !UNITY_2021_1_OR_NEWER
+            Assert.Inconclusive("PanelSettings is not available in this Unity version.");
+#else
             string path = $"{TempRoot}/TestPanel_{Guid.NewGuid():N}.asset";
 
             var result = ToJObject(ManageUI.HandleCommand(new JObject
@@ -290,6 +293,7 @@ namespace MCPForUnityTests.Editor.Tools
 
             var ps = AssetDatabase.LoadAssetAtPath<PanelSettings>(path);
             Assert.IsNotNull(ps, "PanelSettings should exist at the path");
+#endif
         }
 
         [Test]
@@ -318,6 +322,9 @@ namespace MCPForUnityTests.Editor.Tools
         [Test]
         public void AttachUIDocument_AddsComponent()
         {
+#if !UNITY_2021_1_OR_NEWER
+            Assert.Inconclusive("UIDocument is not available in this Unity version.");
+#else
             // Create a UXML file first
             string uxmlPath = $"{TempRoot}/Attach_{Guid.NewGuid():N}.uxml";
             ManageUI.HandleCommand(new JObject
@@ -350,6 +357,7 @@ namespace MCPForUnityTests.Editor.Tools
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
+#endif
         }
 
         [Test]
@@ -528,6 +536,9 @@ namespace MCPForUnityTests.Editor.Tools
         [Test]
         public void DetachUIDocument_RemovesComponent()
         {
+#if !UNITY_2021_1_OR_NEWER
+            Assert.Inconclusive("UIDocument is not available in this Unity version.");
+#else
             string uxmlPath = $"{TempRoot}/Detach_{Guid.NewGuid():N}.uxml";
             ManageUI.HandleCommand(new JObject
             {
@@ -561,6 +572,7 @@ namespace MCPForUnityTests.Editor.Tools
             {
                 UnityEngine.Object.DestroyImmediate(go);
             }
+#endif
         }
 
         [Test]

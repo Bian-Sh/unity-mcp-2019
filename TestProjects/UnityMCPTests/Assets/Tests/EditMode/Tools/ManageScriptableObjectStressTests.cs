@@ -525,8 +525,8 @@ namespace MCPForUnityTests.Editor.Tools
 
             // Type mismatch should fail gracefully with a clear error
             Assert.IsFalse(patchOk, "Setting int to string should fail");
-            Assert.IsTrue(message.Contains("int", StringComparison.OrdinalIgnoreCase) || 
-                          message.Contains("Expected", StringComparison.OrdinalIgnoreCase),
+            Assert.IsTrue(message.IndexOf("int", StringComparison.OrdinalIgnoreCase) >= 0 || 
+                          message.IndexOf("Expected", StringComparison.OrdinalIgnoreCase) >= 0,
                           $"Error message should indicate type issue: {message}");
         }
 

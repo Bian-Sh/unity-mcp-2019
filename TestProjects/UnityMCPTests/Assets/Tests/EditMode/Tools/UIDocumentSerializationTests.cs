@@ -13,10 +13,13 @@ namespace MCPForUnityTests.Editor.Tools
     /// Reproduces issue #585: UIDocument component causes infinite loop when serializing components
     /// due to circular parent/child references in rootVisualElement.
     /// </summary>
+#if UNITY_2021_1_OR_NEWER
     public class UIDocumentSerializationTests
     {
         private GameObject testGameObject;
+#if UNITY_2021_1_OR_NEWER
         private PanelSettings testPanelSettings;
+#endif
         private VisualTreeAsset testVisualTreeAsset;
 
         [SetUp]
@@ -25,8 +28,10 @@ namespace MCPForUnityTests.Editor.Tools
             // Create a test GameObject
             testGameObject = new GameObject("UIDocumentTestObject");
             
+#if UNITY_2021_1_OR_NEWER
             // Create PanelSettings asset (required for UIDocument to have a rootVisualElement)
             testPanelSettings = ScriptableObject.CreateInstance<PanelSettings>();
+#endif
             
             // Create a minimal VisualTreeAsset
             // Note: VisualTreeAsset cannot be created via CreateInstance, we need to use AssetDatabase
@@ -43,11 +48,13 @@ namespace MCPForUnityTests.Editor.Tools
                 UnityEngine.Object.DestroyImmediate(testGameObject);
             }
             
+#if UNITY_2021_1_OR_NEWER
             // Clean up ScriptableObject instances
             if (testPanelSettings != null)
             {
                 UnityEngine.Object.DestroyImmediate(testPanelSettings);
             }
+#endif
             
             // Clean up temporary UXML file
             CleanupTestVisualTreeAsset();
@@ -99,6 +106,9 @@ namespace MCPForUnityTests.Editor.Tools
         [Timeout(10000)] // 10 second timeout - if serialization hangs, test fails
         public void GetComponentData_UIDocument_WithBothAssetsAssigned_DoesNotHang()
         {
+#if !UNITY_2021_1_OR_NEWER
+            Assert.Inconclusive("PanelSettings is not available in this Unity version.");
+#else
             // Skip test if we couldn't create the VisualTreeAsset
             if (testVisualTreeAsset == null)
             {
@@ -178,6 +188,7 @@ namespace MCPForUnityTests.Editor.Tools
             Assert.IsNotNull(panelSettingsRef, "panelSettings should be serialized as dictionary");
             Assert.IsTrue(panelSettingsRef.ContainsKey("name"), "panelSettings should have name");
             Assert.IsTrue(panelSettingsRef.ContainsKey("instanceID"), "panelSettings should have instanceID");
+#endif
         }
 
         /// <summary>
@@ -208,6 +219,9 @@ namespace MCPForUnityTests.Editor.Tools
         [Test]
         public void GetComponentData_UIDocument_WithOnlyPanelSettings_Succeeds()
         {
+#if !UNITY_2021_1_OR_NEWER
+            Assert.Inconclusive("PanelSettings is not available in this Unity version.");
+#else
             // Arrange
             var uiDocument = testGameObject.AddComponent<UIDocument>();
             uiDocument.panelSettings = testPanelSettings;
@@ -218,6 +232,7 @@ namespace MCPForUnityTests.Editor.Tools
 
             // Assert
             Assert.IsNotNull(result, "Should return serialized component data");
+#endif
         }
 
         /// <summary>
@@ -244,4 +259,14 @@ namespace MCPForUnityTests.Editor.Tools
             Assert.IsNotNull(result, "Should return serialized component data");
         }
     }
+#else
+    public class UIDocumentSerializationTests
+    {
+        [Test]
+        public void UIDocumentSerialization_NotAvailable_InOlderUnity()
+        {
+            Assert.Inconclusive("UIDocument is not available in this Unity version.");
+        }
+    }
+#endif
 }
