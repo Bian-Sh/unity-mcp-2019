@@ -66,7 +66,5 @@ scripts/local-test/
 # Per-version logs from tools/check-unity-versions.{sh,ps1}
 tools/.unity-check-logs/
 
-# Ignore local Claude settings, but keep distributable project skills tracked.
-/.claude/*
-!/.claude/skills/
-!/.claude/skills/**
+# Ignore the .claude directory, since it might contain local/project-level setting such as deny and allowlist.
+/.claude

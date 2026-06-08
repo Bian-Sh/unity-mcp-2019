@@ -544,13 +544,11 @@ namespace MCPForUnity.Editor.Windows.Components.ClientConfig
             if (string.IsNullOrEmpty(installPath))
                 return;
 
-            string branch = AssetPathUtility.IsPreReleaseVersion() ? "beta" : "main";
-
             isSkillSyncInProgress = true;
             installSkillsButton.SetEnabled(false);
             installSkillsButton.text = "Syncing...";
 
-            SkillSyncService.SyncAsync(installPath, branch, null, result =>
+            SkillSyncService.SyncPackagedAsync(installPath, null, result =>
                 {
                     isSkillSyncInProgress = false;
                     installSkillsButton.SetEnabled(true);
