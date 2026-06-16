@@ -330,12 +330,19 @@ namespace MCPForUnityTests.Editor.Tools
                 mat = AssetDatabase.LoadAssetAtPath<Material>(matPath);
                 // The "Standard" shader request is aliased to the active pipeline's lit shader.
                 var pipeline9 = RenderPipelineUtility.GetActivePipeline();
-                string expectedShader9 = pipeline9 switch
+                string expectedShader9;
+                switch (pipeline9)
                 {
-                    RenderPipelineUtility.PipelineKind.Universal => "Universal Render Pipeline/Lit",
-                    RenderPipelineUtility.PipelineKind.HighDefinition => "HDRP/Lit",
-                    _ => "Standard"
-                };
+                    case RenderPipelineUtility.PipelineKind.Universal:
+                        expectedShader9 = "Universal Render Pipeline/Lit";
+                        break;
+                    case RenderPipelineUtility.PipelineKind.HighDefinition:
+                        expectedShader9 = "HDRP/Lit";
+                        break;
+                    default:
+                        expectedShader9 = "Standard";
+                        break;
+                }
                 Assert.AreEqual(expectedShader9, mat.shader.name, $"Test 9: Shader should be {expectedShader9}");
                 string colorProp9 = mat.HasProperty("_BaseColor") ? "_BaseColor" : "_Color";
                 var c9 = mat.GetColor(colorProp9);
