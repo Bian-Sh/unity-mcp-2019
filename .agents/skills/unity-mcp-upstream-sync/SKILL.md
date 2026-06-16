@@ -65,8 +65,9 @@ Use this skill to perform an AI-guided semantic upgrade from `CoplayDev/unity-mc
 7. Validate.
    - Run the narrowest relevant tests first.
    - For Python changes, prefer `cd Server && uv run pytest tests/ -v` or a narrower test file.
-   - For Unity/C# structural changes, run the project-appropriate compile check. In this repo, `dotnet build .\Assembly-CSharp.csproj --no-restore` may be useful when that project file exists.
+   - **CRITICAL: For any C# changes, run `dotnet build TestProjects/UnityMCPTests/UnityMCPTests.sln --no-restore` to catch C# 7.3 syntax violations. Unity-generated csproj files already contain `<LangVersion>7.3</LangVersion>`, so the Roslyn compiler will report errors like CS8370 ("功能'递归模式'在 C# 7.3 中不可用") for any C# 8+ syntax (switch expressions, target-typed new, file-scoped namespaces, etc.). This does NOT require a live Unity instance — it works offline and is the definitive syntax compatibility check. A zero-error build is the pass criterion for C# 7.3 compatibility.**
    - If Unity compatibility shims or `#if UNITY_*` gates changed, run `tools/check-unity-versions.sh` when available and practical.
+   - Optionally, connect to a live Unity instance via MCP and run `read_console` with `types=["error"]` for a full runtime validation (catches assembly reference issues and API incompatibilities that dotnet build cannot). This is recommended but not required.
    - If validation cannot run, record the reason and the exact command the user should run.
 
 8. Prepare the final handoff.
